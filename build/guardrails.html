@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guardrails · Snowflake × TVM</title><link rel="stylesheet" href="../assets/style.css"></head>
+<body data-page="guardrails" data-root="../">
+<div class="doc"><aside class="sidebar"></aside><main class="content">
+<span class="pill">Build path · 5</span>
+<h1><img class="ico" src="../assets/icons/security.svg" alt="" style="display:inline-block;vertical-align:middle;margin-right:12px">Guardrails</h1>
+<p class="lede">An AI agent is only as trustworthy as the controls around it. The good news: in Snowflake, the AI layer <strong>inherits</strong> your existing governance. Agents and MCP see exactly what the role sees, and no more.</p>
+
+<div class="grid">
+  <div class="card"><img class="ico" src="../assets/icons/role.svg" alt=""><h3>Access</h3><p>Roles decide what data the agent can reach.</p></div>
+  <div class="card"><img class="ico" src="../assets/icons/policy.svg" alt=""><h3>PII</h3><p>Masking and row access policies flow through to every answer.</p></div>
+  <div class="card"><img class="ico" src="../assets/icons/cost-savings.svg" alt=""><h3>Cost</h3><p>Warehouse limits, monitors and per-answer token budgets.</p></div>
+  <div class="card"><img class="ico" src="../assets/icons/checkmark.svg" alt=""><h3>Quality</h3><p>Verified queries, evaluation and clear "I don't know" behaviour.</p></div>
+</div>
+
+<h2><img class="ico-sm" src="../assets/icons/role.svg" alt="">Access</h2>
+<ul>
+<li>Build with your <b>dev role</b>. Give business users a <b>separate consumer role</b> that has <code>USAGE</code> on the agent and MCP server only.</li>
+<li>Agents using semantic views need <code>SELECT</code> on the semantic view <em>and</em> its underlying tables for the executing role.</li>
+<li>Manage grants in code: <code>meta.grant_usage_to</code> on agent and MCP models, <code>grants:</code> on tables, and <code>copy_grants=true</code> on semantic views.</li>
+</ul>
+<div class="callout gr"><strong>Production pattern: not today</strong>The two snippets on this page change TVM's shared project and tables. Read them, don't run them. Today your team only works in <code>{{FOLDER}}</code>.</div>
+<pre><code><span class="c"># dbt_project.yml  (production pattern)</span>
+models:
+  your_project:
+    marts:
+      +grants:
+        select: ['&lt;BUSINESS_USER_ROLE&gt;']</code></pre>
+
+<h2><img class="ico-sm" src="../assets/icons/policy.svg" alt="">PII &amp; sensitive data</h2>
+<div class="dodont">
+  <div class="do"><h4>✓ Do</h4><ul>
+    <li>Leave PII columns <b>out of the semantic view</b> unless the use case truly needs them</li>
+    <li>Rely on masking and row access policies on the base tables. They're enforced through semantic views and agents</li>
+    <li>Attach policies with a dbt <b>post-hook</b>, so they're re-applied on every build</li>
+    <li>Add an <code>AI_QUESTION_CATEGORIZATION</code> rule that declines questions about individuals</li>
+  </ul></div>
+  <div class="dont"><h4>✗ Don't</h4><ul>
+    <li>Put real PII in <b>sample values</b>. They're metadata and not masked</li>
+    <li>Copy PII into prompts, instructions or verified-query SQL</li>
+    <li>Assume dev data is safe. Check whether it's masked or pseudonymised</li>
+  </ul></div>
+</div>
+<pre><code><span class="c">-- dbt post-hook: re-apply a policy on every build  (production pattern)</span>
+{{ config(post_hook="alter table {{ this }} modify column email set masking policy &lt;GOV_DB&gt;.&lt;GOV_SCHEMA&gt;.MASK_EMAIL") }}</code></pre>
+
+<h2><img class="ico-sm" src="../assets/icons/warehouse.svg" alt="">Cost</h2>
+<div class="table-wrap"><table>
+<tr><th>Layer</th><th>Control</th></tr>
+<tr><td>Warehouse</td><td>A small size, <code>AUTO_SUSPEND = 60</code>, <code>STATEMENT_TIMEOUT_IN_SECONDS</code></td></tr>
+<tr><td>Budget</td><td>A resource monitor on the warehouse (suspend at quota), and/or a Snowflake budget</td></tr>
+<tr><td>Agent</td><td><code>orchestration.budget</code> (seconds and tokens per answer), plus <code>execution_environment</code> on your capped warehouse</td></tr>
+<tr><td>Models</td><td>Optional account allow-list of LLMs (<code>CORTEX_MODELS_ALLOWLIST</code>)</td></tr>
+<tr><td>Attribution</td><td>A <code>query_tag</code> in the dbt profile, and the Cortex usage views in <code>SNOWFLAKE.ACCOUNT_USAGE</code></td></tr>
+</table></div>
+<div class="callout warn"><strong>Good to know</strong>Agent and Analyst AI usage is billed as serverless AI credits, so a warehouse resource monitor doesn't cap it. Use the agent budget and Snowflake budgets for that.</div>
+
+<h2><img class="ico-sm" src="../assets/icons/checkmark.svg" alt="">Challenge: prove it</h2>
+<ul class="check">
+  <li><input type="checkbox"><span>Ask the agent for "a list of subscriber emails". It declines or returns masked values</span></li>
+  <li><input type="checkbox"><span>Ask an out-of-scope question. It says it can't help, and doesn't invent an answer</span></li>
+  <li><input type="checkbox"><span>Stretch: if TVM has a business-user role, check that it can use the agent but can't change it or reach other schemas</span></li>
+  <li><input type="checkbox"><span>Check what your team spent today (query below)</span></li>
+</ul>
+<pre><code>SELECT warehouse_name, SUM(credits_used) AS credits
+FROM SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_METERING_HISTORY
+WHERE start_time &gt;= CURRENT_DATE GROUP BY 1 ORDER BY 2 DESC;   -- can lag up to ~3 h</code></pre>
+
+<h2>Ask CoCo</h2>
+<p>Open CoCo in your workspace and paste one of these. Fill in the &lt;placeholders&gt;. Always read what it proposes before you build.</p>
+<pre><code>Which columns in {{FOLDER}}/sv_team_{{N}}.sql could contain personal data? Check whether a masking policy covers them.
+
+Write 3 questions our agent should decline, and check its instructions handle them.</code></pre>
+
+<h2>Read more</h2>
+<div class="docs">
+  <a href="https://docs.snowflake.com/en/user-guide/views-semantic/best-practices-dev"><img src="../assets/icons/process.svg" alt=""><span><b>Semantic views: RBAC &amp; policies</b><small>Owner's rights, masking, row access, sample values</small></span></a>
+  <a href="https://docs.snowflake.com/en/user-guide/security-column-ddm-intro"><img src="../assets/icons/policy.svg" alt=""><span><b>Dynamic data masking</b><small>Column-level security</small></span></a>
+  <a href="https://docs.snowflake.com/en/user-guide/security-row-intro"><img src="../assets/icons/security.svg" alt=""><span><b>Row access policies</b><small>Row-level security</small></span></a>
+  <a href="https://docs.snowflake.com/en/user-guide/resource-monitors"><img src="../assets/icons/warehouse.svg" alt=""><span><b>Resource monitors</b><small>Credit quotas and suspend actions</small></span></a>
+  <a href="https://docs.snowflake.com/en/user-guide/budgets"><img src="../assets/icons/cost-savings.svg" alt=""><span><b>Budgets</b><small>Spending limits incl. serverless</small></span></a>
+  <a href="https://docs.snowflake.com/en/user-guide/programmatic-access-tokens"><img src="../assets/icons/role.svg" alt=""><span><b>Programmatic access tokens</b><small>Role restriction and expiry</small></span></a>
+</div>
+</main></div>
+<script src="../assets/app.js"></script></body></html>

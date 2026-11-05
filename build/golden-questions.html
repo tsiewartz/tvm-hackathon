@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Golden questions sheet · Snowflake × TVM</title><link rel="stylesheet" href="../assets/style.css"></head>
+<body data-page="gq" data-root="../">
+<div class="doc"><aside class="sidebar"></aside><main class="content">
+<span class="pill">Build path · tool</span><span class="pill o">Sprint 1 to demos</span>
+<h1><img class="ico" src="../assets/icons/target.svg" alt="" style="display:inline-block;vertical-align:middle;margin-right:12px">Golden questions sheet</h1>
+<p class="lede">Write your 10 golden questions with the answer you expect, then test them in CoWork after every change and mark each answer. Your score is what you show in the demo.</p>
+
+<div id="gq-noteam" class="callout"><strong>Pick your team first</strong>Choose your team in the <b>Your team…</b> menu at the top. Each team has its own sheet, saved in this browser only.</div>
+
+<div id="gq-main">
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+  <div class="card"><div class="score" id="gq-score">0 / 10</div><p>Right answers (partly right counts as ½)</p></div>
+  <div class="card"><div class="score" id="gq-tested">0</div><p>Questions tested</p></div>
+  <div class="card"><div class="score" id="gq-mix">-</div><p>Mix: lookup · trend · why · out of scope</p></div>
+</div>
+
+<div class="table-wrap"><table class="gq" id="gq-table">
+<thead><tr><th>#</th><th>Question</th><th>Expected answer / how to check</th><th>Type</th><th>In CoWork</th></tr></thead>
+<tbody></tbody></table></div>
+
+<div class="btn-row" style="margin-top:16px">
+  <button class="btn btn-primary" id="gq-copy" type="button">Copy as golden_questions.md</button>
+  <button class="btn btn-outline" id="gq-reset" type="button">Reset test results</button>
+</div>
+<p style="color:var(--muted);font-size:14px">Paste the copied Markdown into <code>{{FOLDER}}/golden_questions.md</code> and tell the driver, so the whole team (and the reviewers after today) can see it.</p>
+
+<div class="callout"><strong>A good set of 10</strong>4 simple lookups, 4 comparisons or trends, 2 "why" questions, and 1 out-of-scope question the agent should politely decline. For each, write how you know the answer is right: a dashboard, a report, a known number.</div>
+</div>
+</main></div>
+<script src="../assets/app.js"></script>
+<script>
+(function () {
+  const get = (k, d) => { try { return JSON.parse(localStorage.getItem('tvm:' + k)) ?? d; } catch (e) { return d; } };
+  const set = (k, v) => { try { localStorage.setItem('tvm:' + k, JSON.stringify(v)); } catch (e) {} };
+  const team = get('team', '');
+  document.getElementById('gq-noteam').style.display = team ? 'none' : '';
+  document.getElementById('gq-main').style.display = team ? '' : 'none';
+  document.querySelectorAll('.team-select').forEach(s => s.addEventListener('change', () => location.reload()));
+  if (!team) return;
+
+  const KEY = 'gq:' + team;
+  const TYPES = [['', '-'], ['lookup', 'Lookup'], ['trend', 'Trend'], ['why', 'Why'], ['scope', 'Out of scope']];
+  const RESULTS = [['', 'Not tested'], ['right', 'Right'], ['partly', 'Partly right'], ['wrong', 'Wrong']];
+  let rows = get(KEY, []);
+  while (rows.length < 10) rows.push({ q: '', e: '', t: '', r: '' });
+
+  const tbody = document.querySelector('#gq-table tbody');
+  const opt = (list, v) => list.map(([k, l]) => `<option value="${k}"${k === v ? ' selected' : ''}>${l}</option>`).join('');
+  rows.forEach((row, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="n">${i + 1}</td><td><input data-f="q" placeholder="${i === 9 ? 'e.g. What will the weather be in Stockholm?' : 'A real question someone asks'}"></td>`
+      + `<td><input data-f="e" placeholder="${i === 9 ? 'Politely declines' : 'e.g. ~15,800, matches the Subs dashboard'}"></td>`
+      + `<td class="t"><select data-f="t">${opt(TYPES, row.t)}</select></td><td class="r"><select data-f="r">${opt(RESULTS, row.r)}</select></td>`;
+    tr.querySelector('[data-f="q"]').value = row.q;
+    tr.querySelector('[data-f="e"]').value = row.e;
+    tr.querySelectorAll('input, select').forEach(el => el.addEventListener('input', () => { row[el.dataset.f] = el.value; save(); }));
+    tbody.appendChild(tr);
+  });
+
+  function save() { set(KEY, rows); render(); }
+  function render() {
+    const score = rows.reduce((a, r) => a + (r.r === 'right' ? 1 : r.r === 'partly' ? 0.5 : 0), 0);
+    document.getElementById('gq-score').textContent = score + ' / 10';
+    document.getElementById('gq-tested').textContent = rows.filter(r => r.r).length;
+    const c = k => rows.filter(r => r.t === k).length;
+    document.getElementById('gq-mix').textContent = `${c('lookup')} · ${c('trend')} · ${c('why')} · ${c('scope')}`;
+    [...tbody.rows].forEach((tr, i) => { tr.className = rows[i].r || ''; });
+  }
+  render();
+
+  const cell = s => (s || '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
+  document.getElementById('gq-copy').addEventListener('click', e => {
+    const label = Object.fromEntries(RESULTS), tl = Object.fromEntries(TYPES);
+    const md = `# Golden questions - Team ${team}\n\nScore: ${document.getElementById('gq-score').textContent}\n\n`
+      + '| # | Question | Expected answer / how to check | Type | Result |\n|---|---|---|---|---|\n'
+      + rows.map((r, i) => `| ${i + 1} | ${cell(r.q)} | ${cell(r.e)} | ${r.t ? tl[r.t] : ''} | ${r.r ? label[r.r] : 'Not tested'} |`).join('\n') + '\n';
+    navigator.clipboard.writeText(md).then(() => { e.target.textContent = 'Copied ✓'; setTimeout(() => e.target.textContent = 'Copy as golden_questions.md', 1500); });
+  });
+  document.getElementById('gq-reset').addEventListener('click', () => {
+    if (!confirm('Clear all test results (questions stay)?')) return;
+    rows.forEach(r => r.r = ''); set(KEY, rows); location.reload();
+  });
+})();
+</script>
+</body></html>

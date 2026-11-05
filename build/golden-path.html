@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Golden path · Snowflake × TVM</title><link rel="stylesheet" href="../assets/style.css"></head>
+<body data-page="golden" data-root="../">
+<div class="doc"><aside class="sidebar"></aside><main class="content">
+<span class="pill">Build path · 0</span><span class="pill o">09:50 – 10:30 · everyone together</span>
+<h1><img class="ico" src="../assets/icons/process.svg" alt="" style="display:inline-block;vertical-align:middle;margin-right:12px">Golden path: from zip to first answer</h1>
+<p class="lede">Forty minutes, together, step by step. At the end your team has a semantic view, an agent and an MCP server on TVM's own data, built with dbt, and the agent answers a first question in Snowflake CoWork. After that, everything is about making it <em>good</em>.</p>
+
+<div class="callout"><strong data-team-label>Pick your team</strong>Choose your team in the <b>Your team…</b> menu at the top. All files and commands below then show your team number and <code>{{SCHEMA}}</code>.</div>
+
+<div class="table-wrap"><table>
+<tr><th>Who</th><th>Does</th></tr>
+<tr><td><b>Everyone</b></td><td>Step 1: the preflight check (2 minutes)</td></tr>
+<tr><td><b>One driver per team</b> (the agent builder)</td><td>Steps 2–7 on the big screen, in <b>their own</b> workspace. The others help, read the data and write golden questions</td></tr>
+</table></div>
+<div class="callout gr"><strong>One project per team, one person builds</strong>There's no Git today, so the team's dbt project lives in the driver's workspace. Only the driver runs <b>Build</b>. Teammates change things in the UI (Semantic Studio, agent editor) and tell the driver, who exports and builds. See <a href="semantic-view.html">From the UI back to dbt</a>.</div>
+
+<h2 id="s1">1 · Preflight check <small style="font-weight:400;color:var(--muted)">(everyone, 09:00–09:50)</small></h2>
+<ol>
+<li>Snowsight, user menu (bottom left) » switch to your <b>dev role</b>.</li>
+<li>Download <a href="../downloads/preflight.sql" download><b>preflight.sql</b></a>, open a new SQL worksheet and paste it in. Pick your dev warehouse and a database you work in (top right).</li>
+<li>Fill in the 3 lines at the top: team number, and the database and schema of TVM's marts (on the screen).</li>
+<li><b>Run all</b> (Cmd/Ctrl + Shift + Enter).</li>
+</ol>
+<ul class="check">
+<li><input type="checkbox"> <span>Checks 1–8 are <b>GREEN</b></span></li>
+<li><input type="checkbox"> <span>Driver: rows 9 and 10 show the two files to paste (keep the worksheet open)</span></li>
+</ul>
+<div class="callout"><strong>Something RED?</strong>Check the names you filled in first. If the row says <em>Admin fix A, B or C</em>, show it to a facilitator: the admin fixes are at the bottom of the file and take 2 minutes.</div>
+
+<h2 id="s2">2 · Download your team's project <small style="font-weight:400;color:var(--muted)">(driver)</small></h2>
+<ol>
+<li>Download <a data-href="../downloads/team_{{N}}_starter.zip" href="../downloads/team_1_starter.zip" download><b class="tpl">team_{{N}}_starter.zip</b></a> and unzip it. You get a folder <code>team_{{N}}/</code>.</li>
+<li><em>Projects » Workspaces</em>. Use <em>My Workspace</em>, or the workspace menu (top left) » <em>Create Workspace</em> » a blank workspace called <code>team_{{N}}</code>.</li>
+<li>Drag the <code>team_{{N}}</code> folder into the file list (or <b>+</b> » <em>Upload Folder</em>).</li>
+</ol>
+<ul class="check">
+<li><input type="checkbox"> <span>I see <code>team_{{N}}/dbt_project.yml</code>, <code>dbt_projects_profiles.yml</code>, <code>models/</code> and <code>macros/</code></span></li>
+</ul>
+
+<h2 id="s3">3 · Paste the two files from the preflight <small style="font-weight:400;color:var(--muted)">(driver)</small></h2>
+<ol>
+<li>In the preflight result, click the cell in row <b>9</b>, copy it, and replace everything in <code>team_{{N}}/dbt_projects_profiles.yml</code>.</li>
+<li>Row <b>10</b> » replace everything in <code>team_{{N}}/models/_marts_sources.yml</code>. It lists every table in the marts schema.</li>
+</ol>
+<div class="callout"><strong>Copy shows <code>\n</code> instead of new lines?</strong>Open the cell (click it, the detail pane on the right shows the full text) and copy from there. Or edit the placeholders <code>&lt;DEV_ROLE&gt;</code>, <code>&lt;DEV_WH&gt;</code>, <code>&lt;DEV_DB&gt;</code>, <code>&lt;MARTS_DB&gt;</code>, <code>&lt;MARTS_SCHEMA&gt;</code> by hand, and list your tables.</div>
+
+<h2 id="s3b">The three model files</h2>
+<p>Already in <code>team_{{N}}/models/</code>. Here for reference:</p>
+<div class="tabs">
+<div class="tab-btns"><button class="on tpl">sv_team_{{N}}.sql</button><button class="tpl">agent_team_{{N}}.sql</button><button class="tpl">mcp_team_{{N}}.sql</button></div>
+<div class="tab-panel on"><p>The semantic view: your business definitions.</p>
+<!--FILE:sv--><pre><code>{#- Team {{N}} semantic view (YAML, the same format Semantic Studio shows). Start small, build it, ask it, then grow.
+    Fill in the 4 lines below (look at the table under Databases first), then build.
+    Why the date and number column? A semantic view with only COUNT(*) is too thin:
+    Cortex Analyst needs at least one dimension and one fact to write good SQL.          -#}
+{%- set mart_table    = 'my_mart_table' -%}    {# a table listed in models/_marts_sources.yml #}
+{%- set row_is        = 'TODO: what one row is, e.g. one subscriber per month' -%}
+{%- set date_column   = 'my_date_column' -%}   {# e.g. month_start #}
+{%- set amount_column = 'my_number_column' -%} {# e.g. mrr_eur #}
+
+{{ config(materialized='semantic_view_yaml') }}
+description: 'Team {{N}}: TODO your business question'
+tables:
+  - name: MART
+    description: "{{ row_is }}"
+    base_table: {{ base_table(source('tvm_marts', mart_table)) }}
+    dimensions:
+      - name: PERIOD
+        synonyms: ['date', 'month']
+        description: 'TODO: what the date means'
+        expr: mart.{{ date_column }}
+      # next: the columns people filter and group by, with business names, e.g.
+      # - name: COUNTRY
+      #   description: 'SE = Sweden, FI = Finland'
+      #   expr: mart.country
+    facts:
+      - name: AMOUNT
+        description: 'TODO: what the number is, unit and currency'
+        expr: mart.{{ amount_column }}
+    metrics:
+      - name: ROW_COUNT
+        description: 'Number of rows'
+        expr: COUNT(*)
+      - name: TOTAL_AMOUNT
+        description: 'TODO: your first real KPI, e.g. total MRR in EUR'
+        expr: SUM(mart.amount)
+</code></pre><!--/FILE-->
+</div>
+<div class="tab-panel"><p>The agent: uses your semantic view as its data tool. Nothing to change yet.</p>
+<!--FILE:agent--><pre><code>{#- Team {{N}} agent. Uses your semantic view as its only data tool.
+    cowork: only if the account has a CoWork object (ask the facilitator), set it to its name,
+    e.g. 'SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT', so the agent shows up in Snowflake CoWork.  -#}
+{%- set cowork = none -%}
+{{ config(
+    materialized='cortex_agent',
+    meta={
+      'display_name': 'Team {{N}} agent',
+      'comment': 'Team {{N}}: TODO business question',
+      'cowork_object': cowork
+    }
+) }}
+models:
+  orchestration: auto
+orchestration:
+  budget:
+    seconds: 60
+    tokens: 20000
+instructions:
+  response: "Answer concisely for a TVM business user. Lead with the number, then one sentence of context. Always mention the period you used."
+  orchestration: "Use the data tool for every question about the data. If a question is ambiguous about time, ask or use the last 12 months and say so."
+  sample_questions:
+    - question: "TODO: your first golden question"
+tools:
+  - tool_spec:
+      type: "cortex_analyst_text_to_sql"
+      name: "data"
+      description: "TODO: what this data covers, in business words (which brand, which markets, which period)"
+  - tool_spec:
+      type: "data_to_chart"
+      name: "data_to_chart"
+      description: "Generates charts from query results"
+tool_resources:
+  data:
+    semantic_view: "{{ ref('sv_team_{{N}}') }}"
+    execution_environment:
+      type: warehouse
+      warehouse: "{{ target.warehouse }}"
+      query_timeout: 120
+</code></pre><!--/FILE-->
+</div>
+<div class="tab-panel"><p>The MCP server: makes your agent available in Claude Code. Nothing to change.</p>
+<!--FILE:mcp--><pre><code>{#- Team {{N}} MCP server. Exposes your agent to Claude Code. Nothing to change here. -#}
+{{ config(materialized='mcp_server') }}
+tools:
+  - name: "team-{{N}}-agent"
+    type: "CORTEX_AGENT_RUN"
+    identifier: "{{ ref('agent_team_{{N}}') }}"
+    title: "Team {{N}} agent"
+    description: "Ask a business question about TODO. Returns an answer with the SQL used."
+    annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false }
+</code></pre><!--/FILE-->
+</div>
+</div>
+
+<h2 id="s4">4 · Fill in four lines</h2>
+<p>At the top of <code>sv_team_{{N}}.sql</code>, point the skeleton at one mart table for your question:</p>
+<div class="table-wrap"><table>
+<tr><th>Line</th><th>What to put</th><th>Example</th></tr>
+<tr><td><code>mart_table</code></td><td>A table listed in <code>_marts_sources.yml</code>. Missing one? Add it there</td><td><code>'fct_subscriber_months'</code></td></tr>
+<tr><td><code>row_is</code></td><td>What one row is, in business words</td><td><code>'One subscriber per month'</code></td></tr>
+<tr><td><code>date_column</code></td><td>The main date column</td><td><code>'month_start'</code></td></tr>
+<tr><td><code>amount_column</code></td><td>One number column you want to add up</td><td><code>'mrr_eur'</code></td></tr>
+</table></div>
+<p>Look at the columns under <em>Databases</em> in the left panel, or ask CoCo:</p>
+<pre><code>Look at the tables in models/_marts_sources.yml. Which one fits the question
+"&lt;your business question&gt;"? Give me its main date column and one number column to sum.</code></pre>
+<div class="callout"><strong>Why a date and a number?</strong>A semantic view with only <code>COUNT(*)</code> is too thin. In our tests Cortex Analyst then sometimes wrote broken SQL. With one dimension and one fact it answered every time.</div>
+
+<h2 id="s5">5 · Build</h2>
+<p>Open <code>team_{{N}}/dbt_project.yml</code>. The dbt controls are in the <b>panel at the bottom</b> of the editor: <em>Profile</em> · <em>Environment</em> · the command button with <b>▾</b>.</p>
+<ol>
+<li><b>Profile:</b> <code>{{TARGET}}</code>. Leave <em>Environment</em> on <em>None</em>.</li>
+<li>Click <b>▾</b> » <b>Build</b> » <em>Execute</em>. No flags, no Deps, no External Access Integration needed: the project has no packages.</li>
+</ol>
+<ul class="check">
+<li><input type="checkbox"> <span>Output ends with <code>Done. PASS=3</code> and <code>ERROR=0</code></span></li>
+</ul>
+<div class="callout"><strong>Two run buttons</strong>The <em>Run file ▾</em> button at the top only runs the open file. Use the bottom panel.</div>
+
+<h2 id="s7">6 · Ask your first question</h2>
+<p>In a SQL file in your workspace:</p>
+<pre><code>SELECT * FROM SEMANTIC_VIEW({{DEV_DB}}.{{SCHEMA}}.SV_TEAM_{{N}}
+  METRICS mart.total_amount DIMENSIONS mart.period)
+ORDER BY 1 DESC LIMIT 12;</code></pre>
+<p>Then in <b>Snowflake CoWork</b> (<a href="https://ai.snowflake.com">ai.snowflake.com</a>): pick <b class="tpl">Team {{N}} agent</b> and ask something like <em>"What was the total amount per month this year?"</em></p>
+<ul class="check">
+<li><input type="checkbox"> <span>The SQL returns numbers per month</span></li>
+<li><input type="checkbox"> <span>The agent in CoWork answers with the same numbers</span></li>
+</ul>
+<div class="callout"><strong>Agent missing in CoWork, or "not authorized"?</strong>CoWork uses your <b>default role</b>, and only that role sees your agent. Set your dev role as default (user menu » <em>Settings</em>), reload CoWork. Still missing? Call a facilitator: the agent may need adding to the account's CoWork list.</div>
+
+<h2 id="s8">7 · Save a copy</h2>
+<p>Without Git, the workspace is the only copy. At every checkpoint (10:30, 12:15, 14:10): right-click <code>team_{{N}}</code> » <em>Download</em>, and drop the zip in the team channel.</p>
+
+<div class="callout ex"><strong>Checkpoint 10:30</strong>Your team has one semantic view, one agent and one MCP server in <code>{{SCHEMA}}</code>, and the agent answers in CoWork. Now continue with <a href="discover.html">1 · Discover your data</a> and make it answer <em>your</em> question.</div>
+
+<h2>If something goes wrong</h2>
+<div class="table-wrap"><table>
+<tr><th>You see</th><th>Do this</th></tr>
+<tr><td>No <em>Profile</em> in the bottom panel</td><td>Open a file inside <code>team_{{N}}/</code>. Still nothing? <code>dbt_project.yml</code> must be directly in <code>team_{{N}}/</code>, not one folder deeper</td></tr>
+<tr><td><code>Could not find profile named 'tvm_hackathon'</code></td><td>Step 3: the profiles file didn't get pasted, or the first line isn't <code>tvm_hackathon:</code></td></tr>
+<tr><td><code>does not exist or not authorized</code> on a mart</td><td>Database/schema in <code>_marts_sources.yml</code> is wrong, or run the preflight again (check 5)</td></tr>
+<tr><td><code>depends on a source named 'tvm_marts.my_mart_table'</code></td><td>You haven't filled in step 4 yet</td></tr>
+<tr><td><code>source … was not found</code></td><td>The table isn't in <code>_marts_sources.yml</code>. Add it (name in lower case) and build again</td></tr>
+<tr><td><code>invalid identifier</code> in the semantic view</td><td>A column name in step 4 doesn't exist. Check it under <em>Databases</em></td></tr>
+<tr><td>Agent says it can't read the data</td><td>Test with your dev role, not ACCOUNTADMIN. Then check step 4 has a date and a number column</td></tr>
+</table></div>
+
+<h2>Read more</h2>
+<div class="docs">
+  <a href="https://docs.snowflake.com/en/user-guide/data-engineering/dbt-projects-on-snowflake-using-workspaces"><img src="../assets/icons/code.svg" alt=""><span><b>dbt in Workspaces</b><small>Profiles, commands and the run panel</small></span></a>
+  <a href="https://docs.snowflake.com/en/user-guide/ui-snowsight/workspaces"><img src="../assets/icons/process.svg" alt=""><span><b>Workspaces</b><small>Create, upload and download files</small></span></a>
+</div>
+</main></div>
+<script src="../assets/app.js"></script></body></html>

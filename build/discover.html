@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Discover your data · Snowflake × TVM</title><link rel="stylesheet" href="../assets/style.css"></head>
+<body data-page="discover" data-root="../">
+<div class="doc"><aside class="sidebar"></aside><main class="content">
+<span class="pill">Build path · 1</span><span class="pill o">Sprint 1</span>
+<h1><img class="ico" src="../assets/icons/horizon.svg" alt="" style="display:inline-block;vertical-align:middle;margin-right:12px">Discover your data</h1>
+<p class="lede">The most common reason AI answers go wrong isn't the AI. It's unclear questions and the wrong tables. Spend this sprint on <em>what</em> you're answering and <em>where</em> the data lives.</p>
+
+<div class="callout"><strong>Done the golden path?</strong>This sprint starts from a working skeleton in <code>{{FOLDER}}</code>. If you don't have one yet, do <a href="golden-path.html">0 · Golden path</a> first.</div>
+
+<h2>1 · Sharpen the question</h2>
+<p>Turn the track into <b>one decision</b> and <b>one audience</b>:</p>
+<div class="table-wrap"><table>
+<tr><th></th><th>Too broad</th><th>MVP-sized</th></tr>
+<tr><td>Question</td><td>"Understand our customers"</td><td>"Which subscribers are at risk of churning next month, and why?"</td></tr>
+<tr><td>Audience</td><td>"Everyone"</td><td>"The CRM team planning retention campaigns"</td></tr>
+<tr><td>Decision</td><td>none</td><td>"Who gets a retention offer this month"</td></tr>
+</table></div>
+
+<h2>2 · Write your 10 golden questions</h2>
+<div class="callout"><strong>Use the sheet</strong>The <a href="golden-questions.html">golden questions sheet</a> keeps your 10 questions, lets you mark each answer in CoWork and gives you the score for the demo. It copies the list as <code>golden_questions.md</code> for your repo.</div>
+<p>The <b>business tester</b> owns this list. These questions become your verified queries, your test set and your demo script.</p>
+<ul>
+<li><b>Real questions</b> from real people: Slack threads, Jira tickets, dashboard requests</li>
+<li>Mix levels: 4 simple lookups, 4 comparisons or trends, 2 "why" questions</li>
+<li>Include <b>1 out-of-scope question</b>, to check that the agent declines gracefully</li>
+<li>For each one, write the <b>expected answer</b> or how to verify it (an existing report, a known number)</li>
+</ul>
+<pre><code># golden_questions.md  (save it in your team folder)
+| # | Question | Expected answer / how to check | Type |
+|---|----------|-------------------------------|------|
+| 1 | How many active subscribers did we have last month? | ~X, matches the BI dashboard "Subs overview" | lookup |
+| 2 | How did that change versus the same month last year? | ... | trend |
+| ...
+| 10 | What's the weather in Stockholm? | Politely declines | out of scope |</code></pre>
+
+<h2>3 · Find the tables</h2>
+<div class="grid">
+  <div class="card"><img class="ico" src="../assets/icons/target.svg" alt=""><h3>Search the catalog</h3><p>Snowsight's search box looks across tables, views and columns by name and description.</p></div>
+  <div class="card"><img class="ico" src="../assets/icons/schema.svg" alt=""><h3>Start from marts</h3><p>Prefer curated dbt marts over raw sources. They're already cleaned and tested.</p></div>
+  <div class="card"><img class="ico" src="../assets/icons/stream.svg" alt=""><h3>Follow lineage</h3><p><code>dbt docs</code>, or the lineage tab in Snowsight, shows where a table comes from.</p></div>
+  <div class="card"><img class="ico" src="../assets/icons/users.svg" alt=""><h3>Ask the owner</h3><p>Who builds the dashboard for this today? Their SQL is gold.</p></div>
+</div>
+<p>Quick profiling queries:</p>
+<pre><code>-- what's in a schema?
+SHOW TABLES IN SCHEMA &lt;db&gt;.&lt;schema&gt;;
+DESCRIBE TABLE &lt;db&gt;.&lt;schema&gt;.&lt;table&gt;;
+
+-- grain and size
+SELECT COUNT(*), COUNT(DISTINCT &lt;key&gt;), MIN(&lt;date_col&gt;), MAX(&lt;date_col&gt;) FROM &lt;table&gt;;
+
+-- what does a categorical column contain?
+SELECT &lt;col&gt;, COUNT(*) FROM &lt;table&gt; GROUP BY 1 ORDER BY 2 DESC LIMIT 20;
+
+-- which tables are actually used (needs ACCOUNT_USAGE access)?
+SELECT obj.value:"objectName"::string AS table_name, COUNT(*) AS queries
+FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY, LATERAL FLATTEN(base_objects_accessed) obj
+WHERE query_start_time &gt; DATEADD(day, -30, CURRENT_TIMESTAMP())
+GROUP BY 1 ORDER BY 2 DESC LIMIT 25;</code></pre>
+
+<h2>4 · Sketch the model</h2>
+<p>Before you write any dbt, draw it on paper or in a markdown file:</p>
+<ul>
+<li><b>Fact table(s):</b> what is one row? (one subscription-month, one view session, one ad impression…)</li>
+<li><b>Dimensions:</b> what do people slice by? (date, plan, device, region, content genre…)</li>
+<li><b>Metrics:</b> the 3–5 numbers your golden questions need, each defined in one sentence</li>
+<li><b>Gaps:</b> does a dbt model need to be built first, e.g. a monthly snapshot?</li>
+</ul>
+
+<div class="callout gr"><strong>PII check</strong>Look out for personal data: email, name, phone, address, IP, payment details. Leave those columns out of the semantic view entirely, or make sure a masking policy covers them. The agent sees exactly what your role sees.</div>
+
+<h2>Ask CoCo</h2>
+<p>Open CoCo in your workspace and paste one of these. Fill in the &lt;placeholders&gt;. Always read what it proposes before you build.</p>
+<pre><code>Look at the tables in models/_marts_sources.yml. For each one: what is one row, which date columns and which number columns does it have?
+
+Our business question is "&lt;question&gt;". Which of these tables do we need, and how do they join?
+
+Profile &lt;table&gt;: row count, date range, distinct values of the categorical columns, and the share of NULLs per column.</code></pre>
+
+<div class="callout ex"><strong>Sprint goal</strong><code>golden_questions.md</code> with 10 questions and expected answers, a list of 3–10 tables, and a one-sentence definition of every metric. All saved in the team project.</div>
+
+<h2>Read more</h2>
+<div class="docs">
+  <a href="https://docs.snowflake.com/en/user-guide/ui-snowsight/workspaces"><img src="../assets/icons/code.svg" alt=""><span><b>Workspaces</b><small>The Snowsight editor for SQL and dbt</small></span></a>
+  <a href="https://docs.snowflake.com/en/user-guide/ui-snowsight/workspaces"><img src="../assets/icons/process.svg" alt=""><span><b>Workspaces</b><small>Create, upload and download files</small></span></a>
+  <a href="https://docs.snowflake.com/en/user-guide/access-history"><img src="../assets/icons/analytics.svg" alt=""><span><b>Access history</b><small>Find which tables are actually used</small></span></a>
+  <a href="https://docs.snowflake.com/en/user-guide/views-semantic/best-practices-modeling"><img src="../assets/icons/idea.svg" alt=""><span><b>Modeling best practices</b><small>"Start small", scope and common pitfalls</small></span></a>
+</div>
+</main></div>
+<script src="../assets/app.js"></script></body></html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cortex Agent in dbt · Snowflake × TVM</title><link rel="stylesheet" href="../assets/style.css"></head>
+<body data-page="agent" data-root="../">
+<div class="doc"><aside class="sidebar"></aside><main class="content">
+<span class="pill">Build path · 3</span>
+<h1><img class="ico" src="../assets/icons/cortex.svg" alt="" style="display:inline-block;vertical-align:middle;margin-right:12px">Cortex Agent in dbt</h1>
+<p class="lede">A semantic view answers one question at a time. A <strong>Cortex Agent</strong> plans, calls tools (possibly several times), charts the results and explains them in business language. In TVM's dbt project it's just another dbt model.</p>
+
+<h2>The agent as a dbt model</h2>
+<p>Your team project includes a small custom materialization, <code>macros/materializations/cortex_agent.sql</code>. It wraps the model body in <code>CREATE OR REPLACE AGENT … FROM SPECIFICATION $$…$$</code> and runs the grants you list in <code>meta</code>. Because the semantic view is referenced with <code>ref()</code>, dbt always builds it first.</p>
+<pre><code>{{ config(materialized='cortex_agent',
+          meta={'display_name': 'Churn Insights',
+                'comment': 'Answers questions about subscriber churn for the CRM team',
+                'cowork_object': 'SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT'}) }}  <span class="c"># only if TVM curates CoWork, see below</span>
+models:
+  orchestration: auto
+orchestration:
+  budget: { seconds: 60, tokens: 20000 }          <span class="c"># cost guardrail per answer</span>
+instructions:
+  response: |
+    You answer for TVM's CRM team. Lead with the number, then one sentence of context.
+    Always state the time period and any filters you used. Amounts are SEK.
+  orchestration: |
+    Use the churn tool for anything about subscribers, churn or retention.
+    If a question has no time period, use the last 12 complete months.
+    If a question is about individual people, decline: only aggregates are available.
+  sample_questions:
+    - question: "How did churn develop over the last 12 months?"
+tools:
+  - tool_spec:
+      type: "cortex_analyst_text_to_sql"
+      name: "data"
+      description: "Subscriber churn, retention and active subscribers by month, plan and channel. Use for any how-many / how-much / trend question about subscribers."
+  - tool_spec: { type: "data_to_chart", name: "data_to_chart", description: "Charts from query results" }
+tool_resources:
+  data:            # must match the tool name above
+    semantic_view: "{{ ref('sv_team_{{N}}') }}"
+    execution_environment: { type: warehouse, warehouse: "{{ target.warehouse }}", query_timeout: 120 }</code></pre>
+<pre><code>dbt build     # semantic view → agent → MCP server</code></pre>
+<p>Test it right away in Snowsight under <em>AI &amp; ML → Agents</em>. Then test it where business users will use it: <b>Snowflake CoWork</b>, covered next.</p>
+
+<h2 id="cowork">Test in Snowflake CoWork</h2>
+<p><b>Snowflake CoWork</b> (formerly Snowflake Intelligence) is the chat interface for business users at <a href="https://ai.snowflake.com">ai.snowflake.com</a>. It's the most realistic test of your MVP: the same agent, no code, run as a real user with their own role and masking. Your team tests in <b>both</b> places: CoWork (how a business user experiences it) and Claude over MCP (how other tools use it).</p>
+<h3>How your agent shows up in CoWork</h3>
+<table>
+<tr><th>TVM's account has…</th><th>What you do</th></tr>
+<tr><td><b>No CoWork object</b></td><td>Nothing. Users see every agent they have <code>USAGE</code> on. Leave <code>cowork_object</code> out of <code>meta</code>.</td></tr>
+<tr><td><b>A CoWork object</b> (a curated list)</td><td>Set <code>'cowork_object': 'SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT'</code> in <code>meta</code>. dbt adds the agent on the first build, and the next builds keep it. Your role needs <code>MODIFY</code> on the object. Astrid sets this up.</td></tr>
+</table>
+<p>Not sure which applies? Run <code>SHOW SNOWFLAKE INTELLIGENCES;</code>. No rows means no object.</p>
+<h3>Test checklist</h3>
+<ol>
+<li>Open <a href="https://ai.snowflake.com">ai.snowflake.com</a> and pick your agent (it shows its <code>display_name</code>).</li>
+<li>Run your golden questions. Check the answer, the chart, and the SQL shown under the answer.</li>
+<li><b>Check the role.</b> CoWork starts with your <em>default role and warehouse</em>. If the agent doesn't show up, switch to the dev role you built it with.</li>
+<li>Stretch: if TVM has a business-user role, grant it the agent (<code>grant_usage_to</code> in <code>meta</code>) and test with it. That role needs <code>USAGE</code> on the agent, the semantic view and the schema, plus <code>SELECT</code> on the underlying tables.</li>
+<li>Give feedback with thumbs up / down. It ends up in the agent's monitoring, which is a good habit for the MVP.</li>
+</ol>
+<div class="callout warn"><strong>Same agent, two front doors</strong>CoWork and Claude over MCP call the <em>same</em> agent object. A fix in the semantic view or the instructions fixes both after one <code>dbt build</code>. If an answer differs between them, it's usually the role, so check which role each one runs as.</div>
+
+<h2 id="ui">Built an agent in the UI? Bring it into dbt</h2>
+<p>Agents created or tuned under <em>AI &amp; ML » Agents</em> can be exported the same way. You can edit <code>AGENT_TEAM_{{N}}</code> directly: CoWork uses the change right away. The next dbt build replaces it with what's in the file, so <b>export and paste before anyone builds</b>.</p>
+<pre><code>export_yaml --args "{name: {{DEV_DB}}.{{SCHEMA}}.AGENT_TEAM_{{N}}, kind: agent}"</code></pre>
+<p>Run it as <b>Run operation</b> in the bottom panel, then paste the output into <code>{{FOLDER}}/agent_team_{{N}}.sql</code>. The export turns the semantic view into <code>{{ ref(…) }}</code> and the warehouse into <code>{{ target.warehouse }}</code>, so the model works in every team's target. Add <code>'cowork_object'</code> back to <code>meta</code> if your account needs it.</p>
+
+<h2>Best practices</h2>
+<h3>Instructions</h3>
+<div class="dodont">
+  <div class="do"><h4>✓ Do</h4><ul>
+    <li>Say <b>who</b> the agent serves and <b>what</b> they decide</li>
+    <li>Put routing rules in <code>orchestration</code> and tone and format in <code>response</code></li>
+    <li>Give defaults: time period, currency, rounding</li>
+    <li>Say what to do when something is out of scope</li>
+    <li>Ask it to state its assumptions (period, filters)</li>
+  </ul></div>
+  <div class="dont"><h4>✗ Don't</h4><ul>
+    <li>Restate the semantic view's business logic. Keep metric definitions in one place, the semantic view</li>
+    <li>Write vague instructions like "be helpful and accurate"</li>
+    <li>Pile up conflicting rules, which makes reasoning less consistent</li>
+  </ul></div>
+</div>
+
+<h3>Tools</h3>
+<ul>
+<li><b>The tool description is the routing signal.</b> Describe what data the tool covers and when to use it, using words from your golden questions.</li>
+<li>Start with <b>one analyst tool</b> (your semantic view) plus <code>data_to_chart</code>. Add tools only when a golden question needs one.</li>
+<li>Multiple semantic views? Give them <b>clearly distinct</b> descriptions. The agent picks one per question and doesn't join across semantic views.</li>
+<li>Text values that users type freely (titles, show names, campaign names)? Add a <b>Cortex Search service</b> to match them reliably.</li>
+<li>Always point <code>execution_environment</code> at a warehouse you control, with a timeout.</li>
+</ul>
+
+<h3>Test like you mean it</h3>
+<ol>
+<li>Run all 10 golden questions. Note right / partly right / wrong.</li>
+<li>For each miss, ask "show me the SQL". The fix is usually in the <b>semantic view</b> (a missing relationship, a vague description, a missing metric) rather than in the agent.</li>
+<li>Re-run after <b>every</b> change. One fix can break another question.</li>
+<li>Stretch: turn the golden questions into a dataset and run a <b>Cortex Agent evaluation</b>. It scores answer correctness, tool selection and logical consistency.</li>
+</ol>
+
+<h2>Ask CoCo</h2>
+<p>Open CoCo in your workspace and paste one of these. Fill in the &lt;placeholders&gt;. Always read what it proposes before you build.</p>
+<pre><code>Rewrite the instructions in {{FOLDER}}/agent_team_{{N}}.sql for &lt;audience&gt;: lead with the number, state the period, decline questions outside &lt;scope&gt;.
+
+Write a tool description for the data tool, using the words from our golden questions, so the agent knows exactly when to use it.
+
+Our agent answered "&lt;question&gt;" wrong. Here's the SQL it used: &lt;sql&gt;. Is the semantic view or the instructions the problem?</code></pre>
+
+<div class="callout ex"><strong>Sprint goal</strong>An agent built by dbt that answers at least 7 of your 10 golden questions correctly <b>in CoWork</b>, declines the out-of-scope one, and states its assumptions.</div>
+
+<h2>Read more</h2>
+<div class="docs">
+  <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents"><img src="../assets/icons/cortex.svg" alt=""><span><b>Cortex Agents overview</b><small>Concepts, tools, orchestration</small></span></a>
+  <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-manage"><img src="../assets/icons/process.svg" alt=""><span><b>Create &amp; manage agents</b><small>Specification, tools, budgets, versions</small></span></a>
+  <a href="https://docs.snowflake.com/en/sql-reference/sql/create-agent"><img src="../assets/icons/code.svg" alt=""><span><b>CREATE AGENT</b><small>SQL reference and spec format</small></span></a>
+  <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/snowflake-cowork/deploy-agents"><img src="../assets/icons/user.svg" alt=""><span><b>Agents in Snowflake CoWork</b><small>User privileges, CoWork object, visibility</small></span></a>
+  <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-evaluations"><img src="../assets/icons/checkmark.svg" alt=""><span><b>Agent evaluations</b><small>Answer correctness, tool selection, custom metrics</small></span></a>
+  <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-search/cortex-search-overview"><img src="../assets/icons/target.svg" alt=""><span><b>Cortex Search</b><small>Fuzzy matching on text values and documents</small></span></a>
+  <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-get-started"><img src="../assets/icons/launch.svg" alt=""><span><b>Get started with Cortex Agents</b><small>End-to-end walkthrough</small></span></a>
+</div>
+</main></div>
+<script src="../assets/app.js"></script></body></html>

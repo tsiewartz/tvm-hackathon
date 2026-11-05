@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCP + Claude Code · Snowflake × TVM</title><link rel="stylesheet" href="../assets/style.css"></head>
+<body data-page="mcp" data-root="../">
+<div class="doc"><aside class="sidebar"></aside><main class="content">
+<span class="pill">Build path · 4</span>
+<h1><img class="ico" src="../assets/icons/collaboration.svg" alt="" style="display:inline-block;vertical-align:middle;margin-right:12px">MCP + Claude Code</h1>
+<p class="lede">The Model Context Protocol (MCP) is a standard plug between AI assistants and tools. Snowflake hosts the MCP server for you. Your team exposes <strong>one tool, your agent</strong>, so every client that connects gets the same instructions, guardrails and governed data.</p>
+
+<div class="callout"><strong>Why expose the agent, not the semantic view?</strong>The semantic view is already a tool <em>inside</em> your agent. Exposing only the agent means Claude always goes through your instructions, refusal rules and cost budget. There's one entry point, and no second path that skips them.</div>
+
+<div class="grid">
+  <div class="card"><img class="ico" src="../assets/icons/code.svg" alt=""><h3>Define</h3><p>An MCP server object (a dbt model) lists the tools to expose.</p></div>
+  <div class="card"><img class="ico" src="../assets/icons/role.svg" alt=""><h3>Authenticate</h3><p>Claude calls Snowflake over HTTPS with a short-lived token, as your user and role.</p></div>
+  <div class="card"><img class="ico" src="../assets/icons/laptop.svg" alt=""><h3>Use</h3><p>Claude discovers the tools and decides when to call them.</p></div>
+</div>
+
+<h2>The MCP server as a dbt model</h2>
+<p>You already built it in the <a href="golden-path.html">golden path</a>: <code>{{FOLDER}}/mcp_team_{{N}}.sql</code>. Update the <b>description</b> once your agent knows what it's for. That's what Claude reads to decide when to call your agent.</p>
+<pre><code>{{ config(materialized='mcp_server') }}
+tools:
+  - name: "team-{{N}}-agent"
+    type: "CORTEX_AGENT_RUN"
+    identifier: "{{ ref('agent_team_{{N}}') }}"
+    title: "Team {{N}} agent"
+    description: "Ask business questions about subscriber churn and retention. Returns an answer with the SQL used."
+    annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false }</code></pre>
+<p>Snowflake adds a few helper tools automatically (<code>ASYNC_AGENT_RUN_STATUS</code>, <code>AGENT_RUN_RESULT</code>, <code>ASYNC_AGENT_RUN_CANCEL</code>) so that clients can handle long-running agent calls.</p>
+
+<h2>Connect Claude Code (one laptop per team)</h2>
+<p>One person per team, usually the <b>agent builder</b>, sets this up. That laptop is used for testing and for the demo, so the team needs one token, not three.</p>
+
+<h3>1 · Create a token</h3>
+<ol>
+<li>Snowsight » user menu (bottom left) » <em>Settings » Authentication » Programmatic access tokens » Generate new token</em>.</li>
+<li><b>Role:</b> your dev role. <b>Expires in:</b> 1 day is enough.</li>
+<li>Copy the token right away. Snowsight shows it only once.</li>
+</ol>
+
+<h3>2 · Check the token and the URL with curl</h3>
+<p>Your account identifier is in the user menu » <em>Account » View account details</em>. Use <b>hyphens</b>, not underscores.</p>
+<pre><code>export SNOWFLAKE_PAT='&lt;token&gt;'          # never paste it into a chat or commit it
+export SNOWFLAKE_HOST='&lt;org&gt;-&lt;account&gt;.snowflakecomputing.com'
+export MCP_URL="https://$SNOWFLAKE_HOST/api/v2/databases/{{DEV_DB}}/schemas/{{SCHEMA}}/mcp-servers/MCP_TEAM_{{N}}"
+
+curl -s -X POST "$MCP_URL" -H "Authorization: Bearer $SNOWFLAKE_PAT" \
+  -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'</code></pre>
+<ul class="check">
+<li><input type="checkbox"> <span>The answer lists <code>team-{{N}}-agent</code> plus the three helper tools</span></li>
+</ul>
+
+<h3>3 · Add it to Claude Code</h3>
+<pre><code>claude mcp add --transport http team-{{N}} "$MCP_URL" \
+  --header "Authorization: Bearer $SNOWFLAKE_PAT"
+claude      # then /mcp → team-{{N}}: connected</code></pre>
+<p>Then ask it a golden question, e.g. <em>"Use the team-{{N}} agent: what was the total amount per month this year?"</em></p>
+
+<div class="table-wrap"><table>
+<tr><th>curl says</th><th>Means</th></tr>
+<tr><td><code>Invalid OAuth access token</code> (HTTP 401)</td><td>Token wrong or expired, or blocked by the network policy (are you on the TV4 network or VPN?)</td></tr>
+<tr><td><code>MCP server … does not exist or not authorized</code></td><td>Wrong database, schema or name in the URL, or the token's role can't see the MCP server. Check the name in the message</td></tr>
+</table></div>
+
+<h2>Best practices</h2>
+<div class="dodont">
+  <div class="do"><h4>✓ Do</h4><ul>
+    <li>Expose <b>only the agent</b>. It carries your instructions and guardrails</li>
+    <li>Write tool <b>descriptions</b> for the AI client: what's covered and when to use it</li>
+    <li>Mark read-only tools with <code>readOnlyHint: true</code></li>
+    <li>Use short-lived, role-restricted tokens behind a network policy</li>
+    <li>Grant <code>USAGE</code> on the MCP server to the roles that need it, and nothing more</li>
+  </ul></div>
+  <div class="dont"><h4>✗ Don't</h4><ul>
+    <li>Add the semantic view or <code>SYSTEM_EXECUTE_SQL</code> as extra MCP tools. They let clients bypass the agent</li>
+    <li>Use an admin role for MCP tokens</li>
+    <li>Pass your token to other people or tools</li>
+    <li>Treat tool annotations as security. They're hints, and access control is what enforces</li>
+  </ul></div>
+</div>
+<p><b>Production note:</b> for longer-lived use, move from PATs to OAuth for MCP clients.</p>
+
+<h2>Ask CoCo</h2>
+<p>Open CoCo in your workspace and paste one of these. Fill in the &lt;placeholders&gt;. Always read what it proposes before you build.</p>
+<pre><code>Write the description for the team-{{N}}-agent tool in {{FOLDER}}/mcp_team_{{N}}.sql: what an AI client can ask it, and what it can't answer.
+
+Give me the MCP URL for {{SCHEMA}}.MCP_TEAM_{{N}} on this account, and a curl command that lists its tools.</code></pre>
+
+<div class="callout ex"><strong>Sprint goal</strong>Your golden questions answered from Claude Code through your team's MCP server, ready for the demo.</div>
+
+<h2>Read more</h2>
+<div class="docs">
+  <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-mcp"><img src="../assets/icons/collaboration.svg" alt=""><span><b>Snowflake-managed MCP server</b><small>Setup, tools, authentication</small></span></a>
+  <a href="https://docs.snowflake.com/en/sql-reference/sql/create-mcp-server"><img src="../assets/icons/code.svg" alt=""><span><b>CREATE MCP SERVER</b><small>Tool types, annotations, privileges</small></span></a>
+  <a href="https://docs.snowflake.com/en/user-guide/programmatic-access-tokens"><img src="../assets/icons/role.svg" alt=""><span><b>Programmatic access tokens</b><small>Create, restrict, rotate</small></span></a>
+  <a href="https://modelcontextprotocol.io/"><img src="../assets/icons/application.svg" alt=""><span><b>modelcontextprotocol.io</b><small>The open MCP standard</small></span></a>
+  <a href="https://docs.anthropic.com/en/docs/claude-code/mcp"><img src="../assets/icons/laptop.svg" alt=""><span><b>Claude Code: MCP</b><small>Adding and managing MCP servers</small></span></a>
+</div>
+</main></div>
+<script src="../assets/app.js"></script></body></html>

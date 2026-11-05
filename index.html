@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Snowflake × TVM Hackathon · Talk2YourData</title>
+<meta name="description" content="4 TVM teams build an MVP Talk2YourData agent on real data with dbt, Semantic Views, Cortex Agents and MCP.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="home" data-root="">
+
+<section class="hero">
+  <div class="hero-flakes" aria-hidden="true">
+    <img src="assets/snowflake-mark.svg" alt="" style="right:6%;top:8%;width:170px">
+    <img src="assets/snowflake-mark.svg" alt="" style="left:4%;bottom:6%;width:90px">
+    <img src="assets/snowflake-mark.svg" alt="" style="right:30%;bottom:10%;width:60px">
+  </div>
+  <div class="hero-inner">
+    <div class="hero-partners"><img src="assets/snowflake-mark.svg" alt="Snowflake"><span class="x">×</span><img src="assets/logos/tv4.png" alt="TV4"><img src="assets/logos/mtv.png" alt="MTV"></div>
+    <span class="eyebrow">Hackathon · Friday 6 November 2026</span>
+    <h1>What if anyone at TVM could just <span class="grad">ask the data?</span></h1>
+    <p class="lead">4 teams, real TVM data, one business question each. By 15:00 every team has a working <strong>Talk2YourData MVP</strong>: a governed AI agent that answers in plain English in Snowflake CoWork and in Claude Code over MCP, and that TVM keeps building on after today.</p>
+    <div class="hero-meta"><span><img class="ico-sm" src="assets/icons/time.svg" alt="" style="filter:brightness(0) invert(1)">09:30 – 15:00</span><span><img class="ico-sm" src="assets/icons/users.svg" alt="" style="filter:brightness(0) invert(1)">4 teams × 3 builders</span></div>
+    <div class="btn-row">
+      <a class="btn btn-primary" href="build/golden-path.html">Start: golden path →</a>
+      <a class="btn btn-ghost" href="#agenda">Agenda</a>
+      <a class="btn btn-ghost" href="best-practices.html">Best practices</a>
+      <a class="btn btn-ghost" href="resources.html">Docs &amp; resources</a>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="kicker">The end result (example)</div>
+    <h2>By 15:00 your team is talking to its data</h2>
+    <p class="intro">An example from a dry run on synthetic subscription data. Your team picks its own question and builds the same pattern on TVM's real data.</p>
+    <div class="chat" id="chat" aria-live="polite"></div>
+    <script type="application/json" id="chat-script">[
+      {"who":"u","text":"How did churn change after the last price update?"},
+      {"who":"a","tool":true,"text":"→ calling tool team-1-agent  (Snowflake MCP · your dev role)"},
+      {"who":"a","tool":true,"text":"→ verified query: churn_after_price_update · 0.9s"},
+      {"who":"a","text":"Monthly churn jumped from ~1.0% to 5.1% in March 2026, right after the price update, and stayed there for April (5.2%). It was back to ~1.0% by May. MRR kept growing over the same period."},
+      {"who":"u","text":"Which viewing patterns come before an upgrade?"},
+      {"who":"a","text":"Subscribers who upgrade watch ~65% more sport (169 vs 103 min) and ~55% more live TV in the month before. Heavy sport viewing is the strongest early sign of an upgrade."}
+    ]</script>
+  </div>
+</section>
+
+<section class="section alt">
+  <div class="wrap">
+    <div class="kicker">The architecture</div>
+    <h2>TVM's own data. From TVM's marts to an AI agent.</h2>
+    <p class="intro">Your team gets a small dbt project that reads TVM's existing marts. The semantic view, agent and MCP server are dbt models, connected with <code>ref()</code> and deployed with a single <code>dbt build</code> from a Snowsight workspace. After today it drops straight into TVM's own dbt repo.</p>
+    <div class="diagram">
+      <svg viewBox="0 0 1000 330" role="img" aria-label="Architecture: RAW tables to dbt marts to semantic view to Cortex Agent to MCP server to Claude Code">
+        <defs>
+          <linearGradient id="g1" x1="0" x2="1"><stop offset="0" stop-color="#29B5E8"/><stop offset="1" stop-color="#11567F"/></linearGradient>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#29B5E8"/></marker>
+        </defs>
+        <image href="assets/snowflake-mark.svg" x="20" y="12" width="22" height="22"/>
+        <text x="50" y="29" font-size="13" font-weight="700" opacity=".6">SNOWFLAKE · TVM DEV ACCOUNT</text>
+        <line x1="20" y1="50" x2="980" y2="50" stroke="currentColor" stroke-dasharray="4 6" opacity=".25"/>
+        <text x="20" y="74" font-size="12" opacity=".55">built by dbt ↓</text>
+        <g class="node"><rect x="20" y="90" width="140" height="150" rx="14"/><image href="assets/icons/snowflake-database.svg" x="66" y="104" width="48" height="48"/><text x="90" y="178" text-anchor="middle" font-weight="700">TVM data</text><text x="90" y="200" text-anchor="middle" font-size="12" opacity=".7">your existing</text><text x="90" y="218" text-anchor="middle" font-size="12" opacity=".7">marts</text></g>
+        <g class="node"><rect x="200" y="90" width="150" height="150" rx="14"/><image href="assets/icons/table.svg" x="251" y="104" width="48" height="48"/><text x="275" y="178" text-anchor="middle" font-weight="700">dbt sources</text><text x="275" y="200" text-anchor="middle" font-size="12" opacity=".7">your team's</text><text x="275" y="218" text-anchor="middle" font-size="12" opacity=".7">project</text></g>
+        <rect x="390" y="80" width="170" height="170" rx="16" fill="url(#g1)"/><image href="assets/icons/single-source.svg" x="451" y="96" width="48" height="48" style="filter:brightness(0) invert(1)"/><text x="475" y="174" text-anchor="middle" font-weight="800" style="fill:#fff">Semantic View</text><text x="475" y="196" text-anchor="middle" font-size="12" style="fill:#e8f6fd">metrics defined</text><text x="475" y="214" text-anchor="middle" font-size="12" style="fill:#e8f6fd">once</text>
+        <g class="node"><rect x="600" y="90" width="150" height="150" rx="14"/><image href="assets/icons/cortex.svg" x="651" y="104" width="48" height="48"/><text x="675" y="178" text-anchor="middle" font-weight="700">Cortex Agent</text><text x="675" y="200" text-anchor="middle" font-size="12" opacity=".7">plans · queries</text><text x="675" y="218" text-anchor="middle" font-size="12" opacity=".7">explains</text></g>
+        <g class="node"><rect x="790" y="90" width="140" height="150" rx="14"/><image href="assets/icons/application.svg" x="836" y="104" width="48" height="48"/><text x="860" y="178" text-anchor="middle" font-weight="700">MCP Server</text><text x="860" y="200" text-anchor="middle" font-size="12" opacity=".7">secure tools</text><text x="860" y="218" text-anchor="middle" font-size="12" opacity=".7">your role + PAT</text></g>
+        <path class="flow" d="M160 165H198" marker-end="url(#ar)"/><path class="flow" d="M350 165H388" marker-end="url(#ar)"/><path class="flow" d="M560 165H598" marker-end="url(#ar)"/><path class="flow" d="M750 165H788" marker-end="url(#ar)"/>
+        <path class="flow" d="M860 240V292H730" marker-end="url(#ar)"/>
+        <rect x="540" y="270" width="188" height="44" rx="10" fill="#FF9F36"/><image href="assets/icons/laptop.svg" x="554" y="279" width="26" height="26" style="filter:brightness(0) invert(1)"/><text x="648" y="298" text-anchor="middle" font-weight="700" style="fill:#fff">Claude Code</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="blocks">
+  <div class="wrap">
+    <div class="kicker">The building blocks</div>
+    <h2>Six Snowflake features, one MVP</h2>
+    <p class="intro">What each piece is and where to read more.</p>
+    <div class="grid bb">
+      <div class="card"><div class="card-head"><img class="ico" src="assets/icons/single-source.svg" alt=""></div><h3>Semantic view</h3><p>The business layer: tables, relationships, dimensions, facts and metrics with business names, defined once. Cortex Analyst turns questions into SQL from it.</p><div class="bb-links"><a href="https://docs.snowflake.com/en/user-guide/views-semantic/overview">Overview</a> · <a href="https://docs.snowflake.com/en/user-guide/views-semantic/best-practices-modeling">Best practices</a> · <a href="https://docs.snowflake.com/en/user-guide/views-semantic/verified-query-repository">Verified queries</a></div><a class="meta" href="build/semantic-view.html">Today →</a></div>
+      <div class="card"><div class="card-head"><img class="ico" src="assets/icons/cortex.svg" alt=""></div><h3>Cortex Agent</h3><p>Plans how to answer, calls tools (your semantic view, charts), and explains the result. Runs with the caller's role, so access rules hold.</p><div class="bb-links"><a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents">Overview</a> · <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-manage">Create &amp; manage</a> · <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-evaluations">Evaluations</a></div><a class="meta" href="build/agent.html">Today →</a></div>
+      <div class="card"><div class="card-head"><img class="ico" src="assets/icons/launch.svg" alt=""></div><h3>Snowflake CoWork</h3><p>The chat app for business users at ai.snowflake.com. Your agent shows up there, with answers, charts and the SQL behind them.</p><div class="bb-links"><a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/snowflake-cowork/getting-started">Getting started</a> · <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/snowflake-cowork/build-agents">Build agents for CoWork</a></div><a class="meta" href="build/agent.html">Today →</a></div>
+      <div class="card"><div class="card-head"><img class="ico" src="assets/icons/collaboration.svg" alt=""></div><h3>MCP server</h3><p>A Snowflake-managed endpoint that exposes your agent as a tool to AI clients like Claude Code, secured by your role and a token.</p><div class="bb-links"><a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-mcp">Managed MCP server</a> · <a href="https://docs.snowflake.com/en/sql-reference/sql/create-mcp-server">CREATE MCP SERVER</a></div><a class="meta" href="build/mcp.html">Today →</a></div>
+      <div class="card"><div class="card-head"><img class="ico" src="assets/icons/code.svg" alt=""></div><h3>dbt Projects on Snowflake</h3><p>Run dbt inside a Snowsight workspace. Today the semantic view, agent and MCP server are three dbt models, linked with ref() and built with one command.</p><div class="bb-links"><a href="https://docs.snowflake.com/en/user-guide/data-engineering/dbt-projects-on-snowflake">dbt Projects on Snowflake</a> · <a href="https://docs.snowflake.com/en/user-guide/ui-snowsight/workspaces">Workspaces</a></div><a class="meta" href="build/golden-path.html">Today →</a></div>
+      <div class="card"><div class="card-head"><img class="ico" src="assets/icons/ai-ml.svg" alt=""></div><h3>Snowflake CoCo</h3><p>The AI assistant in your workspace (Cortex Code). Reads your project, writes and fixes YAML, SQL and dbt with you, using your role.</p><div class="bb-links"><a href="https://docs.snowflake.com/en/user-guide/cortex-code/cortex-code">Cortex Code</a> · <a href="cheatsheet.html#coco">Good prompts</a></div><a class="meta" href="cheatsheet.html#coco">Today →</a></div>
+    </div>
+  </div>
+</section>
+
+<section class="section alt" id="agenda">
+  <div class="wrap content home-doc">
+    <div class="kicker">Friday 6 November · 09:30 – 15:00</div>
+    <h2>The day</h2>
+
+<div class="timeline">
+  <div class="tl-item"><div class="tl-time">09:30 – 09:50</div><h4>Kick-off</h4><p>Goal, teams and tracks, definition of done, how we work today</p></div>
+  <div class="tl-item"><div class="tl-time">09:50 – 10:30</div><h4><a href="build/golden-path.html">Golden path</a> (guided, everyone together)</h4><p>Preflight check → upload your team's dbt project into a Snowsight workspace → build a first semantic view on one of TVM's marts → semantic view, agent and MCP server appear → first question in CoWork. Everyone has a working skeleton within 40 minutes.</p></div>
+  <div class="tl-item"><div class="tl-time">10:30 – 11:15</div><h4><a href="build/discover.html">Sprint 1 · Discover your data</a></h4><p>Find the tables, write your 10 golden questions, sketch the metrics</p></div>
+  <div class="tl-item"><div class="tl-time">11:15 – 12:15</div><h4><a href="build/semantic-view.html">Sprint 2 · Semantic view</a></h4><p>Model your domain in dbt: descriptions, relationships, metrics, verified queries</p></div>
+  <div class="tl-item break"><div class="tl-time">12:15 – 13:15</div><h4>Lunch + 1-minute stand-up per team</h4><p>What works, what's blocking you, what's next</p></div>
+  <div class="tl-item"><div class="tl-time">13:15 – 14:10</div><h4><a href="build/agent.html">Sprint 3 · Agent, MCP &amp; guardrails</a></h4><p>Tune the agent, test your golden questions in CoWork, connect <a href="build/mcp.html">Claude Code</a> (one setup per team), prove the <a href="build/guardrails.html">guardrails</a></p></div>
+  <div class="tl-item"><div class="tl-time">14:10 – 14:45</div><h4>Demos · 8 minutes per team</h4><p>Live in CoWork and Claude Code: question → answer → "show me the SQL" → what's next</p></div>
+  <div class="tl-item"><div class="tl-time">14:45 – 15:00</div><h4><a href="mvp-handoff.html">MVP handoff &amp; next steps</a></h4><p>Owners, backlog, path to prod, follow-up date</p></div>
+</div>
+
+  </div>
+</section>
+
+<section class="section" id="dod">
+  <div class="wrap content home-doc">
+    <div class="kicker">The goal</div>
+    <h2>Definition of done (MVP)</h2>
+<p class="intro">The goal isn't a demo. It's an MVP each team keeps building on after today.</p>
+
+<ul class="check" data-key="dod">
+  <li><input type="checkbox"><span>A semantic view built with dbt, covering 3–10 tables, with a business description on every table and column</span></li>
+  <li><input type="checkbox"><span>At least 3 <strong>metrics</strong> and the <strong>relationships</strong> your questions need</span></li>
+  <li><input type="checkbox"><span>At least 5 <strong>verified queries</strong> from your golden questions</span></li>
+  <li><input type="checkbox"><span>A Cortex Agent (dbt model) with clear instructions and sample questions</span></li>
+  <li><input type="checkbox"><span>The agent answers your golden questions in <b>Snowflake CoWork</b></span></li>
+  <li><input type="checkbox"><span>An MCP server (dbt model) that exposes only the agent, with your question answered live in Claude Code</span></li>
+  <li><input type="checkbox"><span>Golden questions tested: how many does the agent get right?</span></li>
+  <li><input type="checkbox"><span>Guardrails checked: no unmasked PII, cost budget on the agent</span></li>
+  <li><input type="checkbox"><span>The team project downloaded as a zip, with a <code>NEXT_STEPS.md</code> in it</span></li>
+</ul>
+
+  </div>
+</section>
+
+<section class="section alt">
+  <div class="wrap content home-doc">
+    <div class="kicker">The team</div>
+    <h2>Who does what</h2>
+<div class="two-col"><div>
+<h3 id="roles">Team roles</h3>
+<p>Everyone builds, and each person also owns one thing:</p>
+<div class="table-wrap"><table>
+<tr><th>Role</th><th>Owns</th><th>Good fit</th></tr>
+<tr><td><img class="ico-sm" src="assets/icons/table.svg" alt="">Semantic modeller</td><td>Tables, relationships, metrics, descriptions in the semantic view (dbt)</td><td>Your strongest dbt or SQL person</td></tr>
+<tr><td><img class="ico-sm" src="assets/icons/cortex.svg" alt="">Agent builder</td><td>Agent instructions, tools, MCP server, the team's one Claude Code setup (their laptop runs the demo)</td><td>Someone curious about prompts and AI tooling</td></tr>
+<tr><td><img class="ico-sm" src="assets/icons/user.svg" alt="">Business tester</td><td>The 10 golden questions, expected answers, checking that the numbers are right, the demo story. Can draft and test the semantic view in the UI (Semantic Studio), the modeller brings it into dbt</td><td>The person closest to the business question</td></tr>
+</table></div>
+
+</div><div>
+<h3 id="demo">Demo format (8 min)</h3>
+<ol>
+<li><strong>The question</strong> (1 min): which business decision does this support, and who asks it today?</li>
+<li><strong>Live in CoWork</strong> (2 min): 2 golden questions, plus the chart</li>
+<li><strong>Live in Claude Code</strong> (2 min): the same agent over MCP, one follow-up, and "show me the SQL"</li>
+<li><strong>Under the hood</strong> (1 min): your semantic view and one verified query in the project</li>
+<li><strong>Score and next steps</strong> (2 min): golden-question accuracy, what's missing, the owner</li>
+</ol>
+
+</div></div>
+  </div>
+</section>
+
+<section class="section" id="rules">
+  <div class="wrap content home-doc">
+    <div class="kicker">The rules</div>
+    <h2>How we work</h2>
+
+<div class="dodont">
+  <div class="do"><h4>✓ Do</h4><ul>
+    <li>Start small: one question, a few tables, then iterate</li>
+    <li>Work only in your team project. Only the driver builds; download a copy at every checkpoint</li>
+    <li>Ask facilitators early. We rotate between teams</li>
+    <li>Write things down in <code>NEXT_STEPS.md</code> as you go</li>
+  </ul></div>
+  <div class="dont"><h4>✗ Don't</h4><ul>
+    <li>Model the whole data warehouse</li>
+    <li>Copy PII into new tables or prompts</li>
+    <li>Change other teams' schemas or TVM's marts</li>
+    <li>Spend the day polishing one perfect metric</li>
+  </ul></div>
+</div>
+  </div>
+</section>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

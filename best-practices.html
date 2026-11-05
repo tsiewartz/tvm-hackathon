@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Best practices · Snowflake × TVM</title><link rel="stylesheet" href="assets/style.css"></head>
+<body data-page="bestpractices" data-root="">
+<div class="doc"><aside class="sidebar"></aside><main class="content">
+<span class="pill v">Knowledge</span>
+<h1>Best practices</h1>
+<p class="lede">What separates a demo that impresses from an MVP people trust. Distilled from Snowflake's guidance and from real customer projects.</p>
+
+<h2 id="top10">The top 10</h2>
+<div class="table-wrap"><table>
+<tr><th>#</th><th>Practice</th><th>Why</th></tr>
+<tr><td>1</td><td><b>Start from real questions</b>, not from the tables</td><td>Ten golden questions give scope, a test set and a demo script all at once</td></tr>
+<tr><td>2</td><td><b>Start small</b>: one domain, 3–10 tables, a star schema</td><td>Easier to debug, and accuracy is higher</td></tr>
+<tr><td>3</td><td><b>Describe everything</b> in business language</td><td>Descriptions are the biggest single driver of accuracy</td></tr>
+<tr><td>4</td><td><b>Define metrics in the semantic view</b>, not in prompts</td><td>One definition, reused by every agent, BI tool and notebook</td></tr>
+<tr><td>5</td><td><b>Define every relationship</b> your questions need</td><td>The agent won't guess joins</td></tr>
+<tr><td>6</td><td><b>Add verified queries last</b>, from real questions</td><td>They optimise a good model; they don't rescue a weak one</td></tr>
+<tr><td>7</td><td><b>Keep synonyms rare</b>, only for internal terms</td><td>Modern models already know the common ones, and extra synonyms just add noise</td></tr>
+<tr><td>8</td><td><b>Test after every change</b> against your golden questions</td><td>Fixes have side-effects</td></tr>
+<tr><td>9</td><td><b>Let governance flow through</b>: policies on tables, not in prompts</td><td>The AI layer inherits RBAC, masking and row access</td></tr>
+<tr><td>10</td><td><b>Everything as code</b>: dbt + Git + CI</td><td>Review, history, rollback and repeatable deploys</td></tr>
+</table></div>
+
+<h2 id="sv">Semantic views</h2>
+<div class="dodont">
+  <div class="do"><h4>✓ Do</h4><ul>
+    <li>Ask "how would I explain this to a business stakeholder?"</li>
+    <li>Explain TVM-specific terms, abbreviations and legacy names</li>
+    <li>Use one semantic view per domain or use case, each with a clearly distinct description</li>
+    <li>Use metrics for rates, averages and distinct counts</li>
+    <li>Use <code>AI_SQL_GENERATION</code> for defaults: period, currency, fiscal calendar</li>
+    <li>Use <code>AI_QUESTION_CATEGORIZATION</code> to decline or clarify</li>
+    <li>Use Cortex Search for free-text values with many distinct values (titles, names)</li>
+  </ul></div>
+  <div class="dont"><h4>✗ Don't</h4><ul>
+    <li>Build one "all tables" semantic view</li>
+    <li>Include every column</li>
+    <li>Auto-generate synonyms</li>
+    <li>Patch a weak model with dozens of verified queries</li>
+    <li>Start in a domain that needs 100% accuracy</li>
+    <li>Put real PII in sample values (they aren't masked)</li>
+    <li>Use Cortex Search on numbers, dates or long free-text fields</li>
+  </ul></div>
+</div>
+<p class="readmore"><a href="https://docs.snowflake.com/en/user-guide/views-semantic/best-practices-modeling">Best practices for modeling semantic views</a> · its production-ready checklist is worth printing.</p>
+
+<h2 id="agents">Agents</h2>
+<div class="dodont">
+  <div class="do"><h4>✓ Do</h4><ul>
+    <li>Name the audience and the decision in the instructions</li>
+    <li>Make tool descriptions specific: they're the routing signal</li>
+    <li>Have the agent state its assumptions (period, filters)</li>
+    <li>Set a budget (seconds and tokens) and a warehouse with a timeout</li>
+    <li>Evaluate with a dataset of golden questions</li>
+  </ul></div>
+  <div class="dont"><h4>✗ Don't</h4><ul>
+    <li>Duplicate metric logic in agent instructions</li>
+    <li>Add tools no golden question needs</li>
+    <li>Ship without testing an out-of-scope question</li>
+  </ul></div>
+</div>
+<p class="readmore"><a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-evaluations">Cortex Agent evaluations</a></p>
+
+<h2 id="dbt">dbt</h2>
+<ul>
+<li><b>Layering:</b> sources → staging → marts → <code>semantic/</code> → <code>ai/</code>. AI objects are just the last layer of the DAG.</li>
+<li>Use <code>ref()</code> everywhere, including <b>inside</b> agent and MCP specs, so dbt builds in the right order.</li>
+<li><b>Test the marts</b> under your semantic view (unique, not_null, relationships). The agent is only as good as the data under it.</li>
+<li>Use <code>copy_grants=true</code> on semantic views, and manage grants in code.</li>
+<li>Use one target schema per team or developer in dev, and promote through CI.</li>
+<li>Pin package versions in <code>packages.yml</code>.</li>
+</ul>
+<p class="readmore"><a href="https://docs.snowflake.com/en/user-guide/views-semantic/best-practices-dev">Best practices for developing &amp; deploying semantic views</a></p>
+
+<h2 id="team">Teamwork on the day</h2>
+<ul>
+<li><b>Work in parallel</b>: the modeller works on the semantic view, the agent builder on the agent and MCP, the tester on questions and expected answers.</li>
+<li><b>One driver builds</b>, small and often. Teammates change things in the UI and the driver exports them into the project before the next build. After today the project goes into TVM's Git repo with review.</li>
+<li><b>Timebox</b>: if something is stuck for 15 minutes, ask a facilitator or simplify.</li>
+<li><b>Write down what you skipped</b> in <code>NEXT_STEPS.md</code>. That's your backlog tomorrow.</li>
+</ul>
+
+<h2 id="pitfalls">Common pitfalls</h2>
+<div class="table-wrap"><table>
+<tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr>
+<tr><td>Wrong numbers, plausible SQL</td><td>Metric not defined, so the AI invents one</td><td>Add the metric with a precise description</td></tr>
+<tr><td>"Can't answer" on join questions</td><td>A missing relationship</td><td>Add it to <code>RELATIONSHIPS</code> (target needs a PK or UNIQUE)</td></tr>
+<tr><td>Wrong time period</td><td>No default rule</td><td>Add an <code>AI_SQL_GENERATION</code> rule for default periods</td></tr>
+<tr><td>Text filter returns 0 rows</td><td>The value is spelled differently in the data</td><td>Add a Cortex Search service on that dimension</td></tr>
+<tr><td>Agent picks the wrong tool</td><td>Vague or overlapping tool descriptions</td><td>Make descriptions distinct, using words from your questions</td></tr>
+<tr><td>Scope creep</td><td>"Just one more table"</td><td>Back to the golden questions. Everything else goes on the backlog</td></tr>
+</table></div>
+</main></div>
+<script src="assets/app.js"></script></body></html>

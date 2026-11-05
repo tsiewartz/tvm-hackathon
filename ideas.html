@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Idea bank · Snowflake × TVM</title><link rel="stylesheet" href="assets/style.css"></head>
+<body data-page="ideas" data-root="">
+<div class="doc"><aside class="sidebar"></aside><main class="content">
+<span class="pill v">Knowledge</span>
+<h1>Idea bank</h1>
+<p class="lede">Use this page for ways to level up once your MVP works.</p>
+
+<h2>Level up your MVP</h2>
+<p>Pick ideas that make <b>your golden questions</b> score better, not the coolest feature. Every snippet uses the same YAML as your skeleton; paste it into the right model and build. Changed something in the UI instead? <code>export_yaml</code>, paste, build.</p>
+<h3>Quick wins</h3>
+<p class="lu-sub">Do these first. Each fixes a common wrong answer.</p>
+<div class="lu">
+<details><summary><span class="pill">15 min</span> <b>Starter questions in CoWork</b></summary>
+<p><b>Why:</b> New users don't know what to ask. Starter questions show what the agent is good at, and they always work.</p>
+<p><b>How:</b> Add 2–3 golden questions as verified queries in <code>sv_team_{{N}}.sql</code> and mark them as onboarding questions. Easiest: add them in Semantic Studio, test them there, then run <code>export_yaml</code> and paste.</p>
+<pre><code>verified_queries:
+  - name: amount_per_month
+    question: 'What was the total amount per month this year?'
+    use_as_onboarding_question: true
+    sql: |
+      -- the SQL you tested in Semantic Studio</code></pre><p class="lu-docs">Docs: <a href="https://docs.snowflake.com/en/user-guide/views-semantic/verified-query-repository">Verified queries</a></p></details>
+<details><summary><span class="pill">10 min</span> <b>Business rules and polite refusals</b></summary>
+<p><b>Why:</b> Fixes the most common wrong answers (wrong period, wrong currency) and stops questions the agent shouldn't answer, without touching the data.</p>
+<p><b>How:</b> Add <code>module_custom_instructions</code> at the top level of your semantic view YAML.</p>
+<pre><code>module_custom_instructions:
+  sql_generation: |
+    If no period is given, use the last 12 complete months and say which months.
+    Amounts are in EUR. Round money to whole numbers.
+  question_categorization: |
+    Decline questions about individual subscribers or named people.
+    If the question has no market, ask whether it is Sweden, Finland or both.</code></pre><p class="lu-docs">Docs: <a href="https://docs.snowflake.com/en/user-guide/views-semantic/custom-instructions">Custom instructions</a></p></details>
+<details><summary><span class="pill">15 min</span> <b>Synonyms and sample values</b></summary>
+<p><b>Why:</b> Users say "Finland", the column says <code>FI</code>. Synonyms and sample values let Analyst map business words to the right column and value.</p>
+<p><b>How:</b> On the dimensions people filter by, add synonyms and the values they use. <code>is_enum: true</code> means "these are all the values".</p>
+<pre><code>      - name: COUNTRY
+        synonyms: ['market', 'country']
+        description: 'Market: SE = Sweden, FI = Finland'
+        expr: mart.country
+        sample_values: ['SE', 'FI']
+        is_enum: true</code></pre><p class="lu-docs">Docs: <a href="https://docs.snowflake.com/en/user-guide/views-semantic/semantic-view-yaml-spec">YAML specification</a></p></details>
+<details><summary><span class="pill">5 min</span> <b>Charts on request</b></summary>
+<p><b>Why:</b> A chart makes the demo land. The skeleton already has the <code>data_to_chart</code> tool.</p>
+<p><b>How:</b> Ask "…show it as a line chart" in CoWork. To get charts by default, add a line to the agent's response instruction.</p>
+<pre><code>instructions:
+  response: "... For trends over time, also show a line chart."</code></pre><p class="lu-docs">Docs: <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-manage">Create &amp; manage agents</a></p></details>
+</div>
+<h3>Stretch</h3>
+<p class="lu-sub">When the basics score 7/10 or more.</p>
+<div class="lu">
+<details><summary><span class="pill v">30 min</span> <b>A second table, joined</b></summary>
+<p><b>Why:</b> Most real questions need a dimension table (plan, user, content). A relationship lets Analyst join it correctly, instead of guessing.</p>
+<p><b>How:</b> Add the second table with a <code>primary_key</code>, then a relationship from the fact table to it. List the table in <code>_marts_sources.yml</code> first.</p>
+<pre><code>  - name: PLANS
+    base_table: {{ base_table(source('tvm_marts', 'dim_plans')) }}
+    primary_key:
+      columns: [plan_id]
+    dimensions:
+      - name: PLAN_NAME
+        expr: plans.plan_name
+relationships:
+  - name: mart_to_plans
+    left_table: MART
+    right_table: PLANS
+    relationship_columns:
+      - left_column: plan_id
+        right_column: plan_id</code></pre><p class="lu-docs">Docs: <a href="https://docs.snowflake.com/en/user-guide/views-semantic/semantic-view-yaml-spec">Relationships</a> · <a href="https://docs.snowflake.com/en/user-guide/views-semantic/best-practices-modeling">Modeling best practices</a></p></details>
+<details><summary><span class="pill v">20 min</span> <b>Rates and ratios as derived metrics</b></summary>
+<p><b>Why:</b> Churn rate, conversion rate, average revenue per user: define the ratio once, so the agent never divides the wrong way.</p>
+<p><b>How:</b> Add a view-level <code>metrics:</code> block (same level as <code>tables:</code>) that combines table metrics.</p>
+<pre><code>metrics:
+  - name: AVERAGE_AMOUNT_PER_ROW
+    description: 'Total amount divided by number of rows'
+    expr: mart.total_amount / NULLIF(mart.row_count, 0)</code></pre><p class="lu-docs">Docs: <a href="https://docs.snowflake.com/en/user-guide/views-semantic/semantic-view-yaml-spec">Derived metrics</a></p></details>
+<details><summary><span class="pill v">30 min</span> <b>Fuzzy matching on titles or names</b></summary>
+<p><b>Why:</b> "Show me Solsidan" fails if the title is stored as "Solsidan S08". A Cortex Search service on the column finds the right value.</p>
+<p><b>How:</b> Create a search service over the distinct values (worksheet, as your dev role), then point the dimension to it.</p>
+<pre><code>CREATE CORTEX SEARCH SERVICE {{DEV_DB}}.{{SCHEMA}}.TITLE_SEARCH
+  ON title WAREHOUSE = {{DEV_WH}} TARGET_LAG = '1 day'
+  AS SELECT DISTINCT title FROM &lt;MARTS_DB&gt;.&lt;MARTS_SCHEMA&gt;.&lt;content_table&gt;;
+
+-- in sv_team_{{N}}.sql, on the TITLE dimension:
+        cortex_search_service:
+          service: TITLE_SEARCH
+          literal_column: TITLE
+          database: {{DEV_DB}}
+          schema: {{SCHEMA}}</code></pre><p class="lu-docs">Docs: <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-search/cortex-search-overview">Cortex Search</a> · <a href="https://docs.snowflake.com/en/user-guide/views-semantic/semantic-view-yaml-spec">YAML specification</a></p></details>
+<details><summary><span class="pill v">45 min</span> <b>A second domain</b></summary>
+<p><b>Why:</b> Keep each semantic view focused (subscriptions, viewing) and let the agent pick. Smaller views give more accurate SQL than one huge one.</p>
+<p><b>How:</b> Add <code>sv_team_{{N}}_viewing.sql</code> as a copy of your skeleton, then a second analyst tool in the agent. The tool descriptions decide which one it uses.</p>
+<pre><code>tools:
+  - tool_spec:
+      type: "cortex_analyst_text_to_sql"
+      name: "viewing"
+      description: "Viewing sessions: minutes watched by content type, device and day"
+tool_resources:
+  viewing:
+    semantic_view: "{{ ref('sv_team_{{N}}_viewing') }}"
+    execution_environment:
+      type: warehouse
+      warehouse: "{{ target.warehouse }}"</code></pre><p class="lu-docs">Docs: <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-manage">Create &amp; manage agents</a></p></details>
+<details><summary><span class="pill v">45 min</span> <b>An evaluation score</b></summary>
+<p><b>Why:</b> Turns "it seems to work" into a number you can track: how many golden questions are right, and did it use the right tool.</p>
+<p><b>How:</b> Put your golden questions and expected answers in a table, then run a Cortex Agent evaluation on it. Report the score in the demo.</p>
+<p class="lu-docs">Docs: <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-evaluations">Agent evaluations</a></p></details>
+</div>
+<h3>Advanced</h3>
+<p class="lu-sub">For a team that is ahead after lunch.</p>
+<div class="lu">
+<details><summary><span class="pill o">60 min</span> <b>A custom tool: "what if?"</b></summary>
+<p><b>Why:</b> Lets the agent <em>calculate</em>, not just look up. E.g. "what happens to MRR if we raise the price by 10%?"</p>
+<p><b>How:</b> Write a stored procedure (CoCo can draft it, test it with <code>CALL</code>). Add it in the agent editor under <em>Tools » Custom tools</em>, then run <code>export_yaml</code> so the tool lands in <code>agent_team_{{N}}.sql</code>. Grant USAGE on the procedure to the dev role.</p>
+<pre><code>CREATE OR REPLACE PROCEDURE {{DEV_DB}}.{{SCHEMA}}.SIMULATE_PRICE_CHANGE(PCT FLOAT)
+RETURNS VARCHAR LANGUAGE SQL EXECUTE AS CALLER
+AS $$ ... $$;</code></pre><p class="lu-docs">Docs: <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-manage">Custom tools</a></p></details>
+<details><summary><span class="pill o">60 min</span> <b>Documents plus data</b></summary>
+<p><b>Why:</b> The data says <em>what</em> happened. A pricing policy or campaign brief says <em>why</em>. With both, the agent can explain.</p>
+<p><b>How:</b> Upload a few PDFs to a stage, parse them, build a Cortex Search service on the text, and add it as a <code>cortex_search</code> tool next to your semantic view.</p>
+<p class="lu-docs">Docs: <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-search/cortex-search-overview">Cortex Search</a> · <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-manage">Create &amp; manage agents</a></p></details>
+<details><summary><span class="pill o">30 min</span> <b>Same metrics in a dashboard</b></summary>
+<p><b>Why:</b> One definition for both the agent and the dashboard, so the numbers always match.</p>
+<p><b>How:</b> A downstream dbt model that queries your semantic view. dbt builds it after the view.</p>
+<pre><code>{{ config(materialized='table') }}
+SELECT * FROM SEMANTIC_VIEW({{ ref('sv_team_{{N}}') }}
+  METRICS mart.total_amount
+  DIMENSIONS mart.period)</code></pre><p class="lu-docs">Docs: <a href="https://docs.snowflake.com/en/user-guide/views-semantic/overview">Query semantic views</a></p></details>
+<details><summary><span class="pill o">45 min</span> <b>Forecasts with code execution</b></summary>
+<p><b>Why:</b> For "where will this be in 3 months?", the agent can run Python in a sandbox on the data it fetched.</p>
+<p><b>How:</b> Enable the code execution tool in the agent specification, and say in the orchestration instruction when to use it.</p>
+<p class="lu-docs">Docs: <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-code-execution-tool">Code execution tool</a></p></details>
+</div>
+<h3>After today</h3>
+<p class="lu-sub">For the backlog in <code>NEXT_STEPS.md</code>.</p>
+<div class="lu">
+<details><summary><span class="pill v">after today</span> <b>Into TVM's dbt repo, with CI</b></summary>
+<p><b>Why:</b> Review, history and repeatable deploys. The team project drops straight into TVM's repo.</p>
+<p><b>How:</b> Move the three models and the macros into TVM's project, switch the sources to TVM's own models with <code>ref()</code>, and add a CI job: <code>dbt build</code> plus the golden-question evaluation on every pull request.</p>
+<p class="lu-docs">Docs: <a href="https://docs.snowflake.com/en/user-guide/data-engineering/dbt-projects-on-snowflake">dbt Projects on Snowflake</a> · <a href="https://docs.snowflake.com/en/user-guide/ui-snowsight/workspaces-git">Workspaces + Git</a></p></details>
+<details><summary><span class="pill v">after today</span> <b>A pilot with real users</b></summary>
+<p><b>Why:</b> The real test: 5 business users, 2 weeks, their questions.</p>
+<p><b>How:</b> Brand the CoWork interface, set a welcome message, grant the agent to a pilot role, and review the questions they ask and the feedback they give. New questions become verified queries.</p>
+<p class="lu-docs">Docs: <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/snowflake-cowork/deploy-agents">User access &amp; settings</a></p></details>
+</div>
+
+<h2>Bonus challenges on the day</h2>
+<ul class="check">
+  <li><input type="checkbox"><span><b>Highest golden-question score</b>: most correct answers out of 10</span></li>
+  <li><input type="checkbox"><span><b>Best "why" answer</b>: an agent that explains a trend, not just reports it</span></li>
+  <li><input type="checkbox"><span><b>Guardrail hero</b>: proves masking, refusals and cost limits live</span></li>
+  <li><input type="checkbox"><span><b>Most reusable</b>: the cleanest project another team could reuse tomorrow</span></li>
+</ul>
+</main></div>
+<script src="assets/app.js"></script></body></html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Troubleshooting · Snowflake × TVM</title><link rel="stylesheet" href="assets/style.css"></head>
+<body data-page="faq" data-root="">
+<div class="doc"><aside class="sidebar"></aside><main class="content">
+<span class="pill">Finish</span>
+<h1>Troubleshooting</h1>
+<p class="lede">The most common problems, and how to fix them fast.</p>
+
+<h3>Preflight &amp; workspace</h3>
+<details open><summary>A preflight check is RED</summary>
+<p>First check the 3 values at the top (team number, marts database, marts schema), and that your dev role and warehouse are selected. If the row says <em>Admin fix A/B/C</em>, a facilitator sends the matching lines from the bottom of <code>preflight.sql</code> to TVM's admin.</p></details>
+<details><summary>Upload doesn't keep the folders</summary>
+<p>Drag the whole unzipped <code>team_n</code> folder, not the zip and not the files inside it. You should see <code>team_n/dbt_project.yml</code>. If files landed loose, create the folder and drag them in, keeping <code>models/</code> and <code>macros/</code>.</p></details>
+<details><summary>No Profile / dbt controls in the bottom panel</summary>
+<p>Open a file inside <code>team_n/</code>. The profile list comes from <code>team_n/dbt_projects_profiles.yml</code>: paste row 9 of the preflight into it.</p></details>
+
+<h3>Semantic views</h3>
+<details><summary><code>syntax error … unexpected 'CREATE'</code></summary>
+<p>The model body must start with <code>TABLES(</code>. The package adds <code>CREATE OR REPLACE SEMANTIC VIEW</code> for you.</p></details>
+<details><summary><code>invalid identifier</code> in a verified query</summary>
+<p>Verified-query SQL uses the semantic view's <b>logical</b> names (<code>f.event_month</code>), not the physical columns. Also double any single quotes.</p></details>
+<details><summary>Relationship error: referenced key</summary>
+<p>The referenced table needs <code>PRIMARY KEY (…)</code> or <code>UNIQUE (…)</code> on the join column in <code>TABLES()</code>.</p></details>
+<details><summary>Descriptions from <code>schema.yml</code> don't show up</summary>
+<p>They don't reach the semantic view. Put <code>COMMENT = '…'</code> in the model body.</p></details>
+
+<h3>Agents</h3>
+<details><summary>The answer looks wrong</summary>
+<p>Ask "show me the SQL". Usually the fix is in the semantic view: a missing metric, a vague description, a missing relationship, or a default-period rule. Rebuild, then ask again.</p></details>
+<details><summary>Agent build fails with a privilege error</summary>
+<p>Your role needs <code>CREATE AGENT</code> on the schema (automatic if dbt created it), and the Cortex database roles (<code>SNOWFLAKE.CORTEX_USER</code> / <code>CORTEX_AGENT_USER</code>).</p></details>
+<details><summary>Answers time out</summary>
+<p>Raise <code>orchestration.budget.seconds</code> moderately. Then look at why the SQL is slow: a missing filter, or a fact table that's too large. Make sure the tool's <code>execution_environment</code> warehouse is running.</p></details>
+
+<h3>Snowflake CoWork</h3>
+<details><summary>My agent doesn't show up in CoWork</summary>
+<ul>
+<li>Run <code>SHOW SNOWFLAKE INTELLIGENCES;</code>. If there's a CoWork object, the agent must be added to it: set <code>cowork_object</code> in the agent's <code>meta</code> (needs <code>MODIFY</code>), or ask Astrid to run <code>ALTER SNOWFLAKE INTELLIGENCE … ADD AGENT</code>.</li>
+<li>Your current role needs <code>USAGE</code> on the agent, its database and its schema.</li>
+<li>CoWork uses your <b>default role</b>. Switch roles in CoWork, or ask for your default role to be set.</li>
+</ul></details>
+<details><summary>The agent answers in Snowsight but errors in CoWork</summary>
+<p>CoWork runs as the user's role and default warehouse. That role needs <code>USAGE</code> on the agent, <code>SELECT</code> on the semantic view and <code>SELECT</code> on its tables, and the user needs a default warehouse. Masking and row policies apply, so different numbers can be correct.</p></details>
+
+<h3>MCP &amp; Claude Code</h3>
+<details><summary>MCP server shows "failed" in <code>/mcp</code></summary>
+<ul>
+<li>The hostname needs hyphens: <code>my-org-my-account.snowflakecomputing.com</code></li>
+<li>Check the database, schema and MCP server name in the URL (upper-case is fine)</li>
+<li>Test with curl: <code>curl -s -X POST "$MCP_URL" -H "Authorization: Bearer $SNOWFLAKE_PAT" -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'</code></li>
+</ul></details>
+<details><summary><code>PAT is invalid / network policy</code></summary>
+<p>PATs are only accepted from IPs allowed by TVM's network policy. Make sure you're on the TV4 network or VPN. Still failing? Ask Astrid Berghult (TVM, today's Snowflake admin) to check the policy. Expired? Create a new token, then remove and re-add the MCP server in Claude Code.</p></details>
+<details><summary>Agent tool: <code>Text parameter is required</code></summary>
+<p>When calling the agent tool directly over MCP, the argument is named <code>text</code>. Claude handles this automatically.</p></details>
+
+<h3>Cost</h3>
+<details><summary>Queries hang or the warehouse is suspended</summary>
+<p>The daily credit cap may have been hit. That's the guardrail working, so tell a facilitator.</p></details>
+</main></div>
+<script src="assets/app.js"></script></body></html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MVP handoff · Snowflake × TVM</title><link rel="stylesheet" href="assets/style.css"></head>
+<body data-page="next" data-root="">
+<div class="doc"><aside class="sidebar"></aside><main class="content">
+<span class="pill">Finish</span><span class="pill o">14:45</span>
+<h1>MVP handoff</h1>
+<p class="lede">The day ends with four MVPs, not four demos. Here's how to hand yours over so it keeps moving next week.</p>
+
+<h2>Before you leave</h2>
+<ul class="check">
+  <li><input type="checkbox"><span>The team project is downloaded from the driver's workspace (right-click <code>team_n</code> » <em>Download</em>) and handed to the owner, who puts it in TVM's repo after today</span></li>
+  <li><input type="checkbox"><span><code>golden_questions.md</code> is in the project folder, with the current score (x/10)</span></li>
+  <li><input type="checkbox"><span><code>NEXT_STEPS.md</code> is filled in (template below)</span></li>
+  <li><input type="checkbox"><span>A <b>product owner</b> and a <b>tech owner</b> are named</span></li>
+  <li><input type="checkbox"><span>Your PAT is revoked, or left to expire</span></li>
+</ul>
+
+<h2>NEXT_STEPS.md template</h2>
+<pre><code># &lt;Team&gt; – &lt;Track&gt; MVP
+
+## The question
+Which decision this supports, and for whom.
+
+## What works today
+- Semantic view: &lt;name&gt; (tables, metrics)
+- Agent: &lt;name&gt;; MCP server: &lt;name&gt;
+- Golden questions: x/10 correct
+
+## Known gaps
+- Data: missing tables / quality issues
+- Model: metrics or relationships not yet defined
+- Questions the agent gets wrong (and why)
+
+## Backlog (prioritised)
+1. …
+2. …
+
+## Path to production
+- [ ] Review semantic view definitions with the business owner
+- [ ] Move the project into TVM's Git repo, then add CI: dbt build + golden-question checks on every PR
+- [ ] Prod role for business users (USAGE on agent only)
+- [ ] Auth for MCP clients: OAuth or key-pair instead of PATs
+- [ ] Roll out in Snowflake CoWork to a pilot group of business users
+
+## Owners
+Product: … · Tech: … · Next check-in: …</code></pre>
+
+<h2>From MVP to production</h2>
+<div class="table-wrap"><table>
+<tr><th></th><th>Hackathon MVP</th><th>Production</th></tr>
+<tr><td>Environment</td><td>Dev account, team schema</td><td>Prod via TVM's dbt CI/CD (or schema clone)</td></tr>
+<tr><td>Quality</td><td>10 golden questions, tested by hand</td><td>An evaluation dataset run on every change, plus a review of real usage</td></tr>
+<tr><td>Access</td><td>Dev role</td><td>Separate consumer role with <code>USAGE</code> on agent / MCP only</td></tr>
+<tr><td>Auth</td><td>Short-lived PAT</td><td>OAuth or key-pair, plus a network policy</td></tr>
+<tr><td>Front-end</td><td>Snowflake CoWork + Claude Code (MCP)</td><td>+ BI tools, Microsoft Teams, apps through the Agents API</td></tr>
+<tr><td>Cost</td><td>Agent budget, warehouse cap</td><td>+ Snowflake budgets and Cortex usage monitoring</td></tr>
+</table></div>
+
+<h2>After the day</h2>
+<div class="grid">
+  <div class="card"><img class="ico" src="assets/icons/calendar.svg" alt=""><h3>Week 1</h3><p>Owners review the MVPs with the business, and the backlog is prioritised.</p></div>
+  <div class="card"><img class="ico" src="assets/icons/process.svg" alt=""><h3>Week 2–4</h3><p>CI and evaluations in place, first pilot users on the agent.</p></div>
+  <div class="card"><img class="ico" src="assets/icons/collaboration.svg" alt=""><h3>Follow-up with Snowflake</h3><p>A session on accuracy, evaluation and rollout. Date agreed in the wrap-up.</p></div>
+</div>
+</main></div>
+<script src="assets/app.js"></script></body></html>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Semantic view in dbt · Snowflake × TVM</title><link rel="stylesheet" href="../assets/style.css"></head>
+<body data-page="semantic" data-root="../">
+<div class="doc"><aside class="sidebar"></aside><main class="content">
+<span class="pill">Build path · 2</span>
+<h1><img class="ico" src="../assets/icons/single-source.svg" alt="" style="display:inline-block;vertical-align:middle;margin-right:12px">Semantic view in dbt</h1>
+<p class="lede">The semantic view is where your business logic lives: what the tables mean, how they join and how each metric is calculated. Answer quality depends on it more than on anything else you build today.</p>
+
+<h2>How it works in dbt</h2>
+<p>The <a href="https://hub.getdbt.com/Snowflake-Labs/dbt_semantic_view/latest/"><code>Snowflake-Labs/dbt_semantic_view</code></a> package adds a <code>semantic_view</code> materialization. It passes SQL straight through to Snowflake, so new Snowflake features (like verified queries) work without a package update.</p>
+<pre><code><span class="c"># packages.yml</span>
+packages:
+  - package: Snowflake-Labs/dbt_semantic_view
+    version: 1.0.6</code></pre>
+<pre><code><span class="c">-- {{FOLDER}}/sv_team_{{N}}.sql</span>
+{{ config(materialized='semantic_view', copy_grants=true) }}
+
+TABLES(
+  f AS {{ source('tvm_marts', 'fct_your_fact') }} PRIMARY KEY (id)
+    COMMENT = 'One row per ... Use for ...',
+  d AS {{ source('tvm_marts', 'dim_your_dim') }} PRIMARY KEY (dim_id)
+    COMMENT = '...'
+)
+RELATIONSHIPS(
+  f_to_d AS f(dim_id) REFERENCES d
+)
+FACTS(
+  f.amount AS f.amount COMMENT = 'Net amount in SEK, excl. VAT'
+)
+DIMENSIONS(
+  f.event_month AS DATE_TRUNC('month', f.event_date) COMMENT = 'Calendar month of the event',
+  d.segment     AS d.segment COMMENT = 'Customer segment: B2C, B2B or partner'
+)
+METRICS(
+  f.total_amount AS SUM(f.amount) COMMENT = 'Total net amount in SEK',
+  f.avg_amount   AS AVG(f.amount)
+)
+COMMENT = 'What this semantic view answers, and for whom'
+AI_SQL_GENERATION 'If no date filter is given, use the last 12 complete months. Amounts are SEK.'
+AI_VERIFIED_QUERIES (
+  total_by_month AS (
+    QUESTION 'What was the total amount per month this year?'
+    ONBOARDING_QUESTION TRUE
+    SQL 'SELECT f.event_month, SUM(f.amount) FROM f WHERE f.event_month &gt;= DATE_TRUNC(''year'', CURRENT_DATE) GROUP BY 1 ORDER BY 1'
+  )
+)</code></pre>
+<pre><code>dbt build
+
+SELECT * FROM SEMANTIC_VIEW({{DEV_DB}}.{{SCHEMA}}.SV_TEAM_{{N}}
+  METRICS f.total_amount DIMENSIONS f.event_month);</code></pre>
+
+<h2 id="ui">Build it in the UI, keep it in dbt</h2>
+<p>You don't have to write the semantic view by hand. Snowsight's <b>Semantic View Autopilot</b> and <b>Semantic Studio</b> suggest descriptions, keys, relationships and verified queries, and let you test questions straight away. This is a good job for the <b>business tester</b>. dbt stays the place where it lives.</p>
+<div class="callout gr"><strong>Export before anyone builds</strong>You can edit <code>SV_TEAM_{{N}}</code> directly in the UI, and your agent uses the changes right away, so you can test them in CoWork. But the next dbt build replaces the view with what's in the file. So: <b>say it in the team when you edit in the UI, and nobody builds until it's exported and pasted.</b> For a bigger experiment you might throw away, use a copy such as <code class="tpl">SV_TEAM_{{N}}_DRAFT</code>.</div>
+<ol>
+<li><b>Edit in the UI:</b> open <code>SV_TEAM_{{N}}</code> under <em>AI &amp; ML » Cortex Analyst</em> (it opens in Semantic Studio), or start a new one with <em>Workspaces » Add new » Semantic View</em> in your schema <code>{{SCHEMA}}</code>. Add tables, descriptions and verified queries, and test until your golden questions work.</li>
+<li><b>Export it as a dbt model:</b> in the bottom panel, command <b>Run operation</b>, with flags:</li>
+</ol>
+<pre><code>export_yaml --args "{name: {{DEV_DB}}.{{SCHEMA}}.SV_TEAM_{{N}}}"</code></pre>
+<ol start="3">
+<li><b>Paste:</b> copy everything between the <code>----- paste</code> and <code>----- end</code> lines in the output into <code>{{FOLDER}}/sv_team_{{N}}.sql</code>, replacing what's there. The export already uses <code>source('tvm_marts', …)</code> for the mart tables, so dbt lineage stays intact.</li>
+<li><b>Build</b> (driver only). Your agent now uses the improved view.</li>
+</ol>
+<p>The pasted model looks like this. It's the same YAML you see in Semantic Studio, so you can also keep editing it in the file:</p>
+<pre><code>{{ config(materialized='semantic_view_yaml') }}
+description: 'Subscriber base and revenue per month'
+tables:
+- name: MART
+  description: One subscriber per month the subscription was live
+  base_table: {{ base_table(source('tvm_marts', 'fct_subscriber_months')) }}
+  dimensions:
+  - name: PERIOD
+    expr: mart.month_start
+    data_type: DATE
+  metrics:
+  - name: TOTAL_MRR
+    expr: SUM(mart.mrr_eur)</code></pre>
+<div class="callout"><strong>SQL or YAML, your choice</strong>The golden path skeleton uses SQL syntax (<code>materialized='semantic_view'</code>), the export uses YAML (<code>materialized='semantic_view_yaml'</code>). Both build the same object. Once you've pasted the YAML, keep working in YAML.</div>
+
+<h2>Best practices</h2>
+<h3>Design and scope</h3>
+<div class="dodont">
+  <div class="do"><h4>✓ Do</h4><ul>
+    <li><b>Design for the business user</b>: business words, not table names</li>
+    <li><b>One domain per semantic view</b>, scoped to your track</li>
+    <li><b>Start with 3–10 tables</b>, ideally a star schema (one fact table plus its dimensions)</li>
+    <li>Include only columns people will actually ask about</li>
+  </ul></div>
+  <div class="dont"><h4>✗ Don't</h4><ul>
+    <li>Build an "all tables" semantic view</li>
+    <li>Add every column "just in case"</li>
+    <li>Start in a domain that needs near-100% accuracy (e.g. finance reporting)</li>
+  </ul></div>
+</div>
+
+<h3>Descriptions matter most</h3>
+<p>Snowflake's own guidance calls descriptions <em>the single most important element for accuracy</em>. The model can't guess TVM-specific terms, abbreviations or business rules.</p>
+<div class="dodont">
+  <div class="do"><h4>✓ Good</h4><ul><li><code>COMMENT = 'Active subscriber: has a paid, non-cancelled subscription on the last day of the month. Excludes free trials.'</code></li></ul></div>
+  <div class="dont"><h4>✗ Poor</h4><ul><li><code>COMMENT = 'Active flag'</code></li></ul></div>
+</div>
+
+<h3>Metrics, relationships and filters</h3>
+<ul>
+<li><b>Define every relationship your questions need.</b> The agent won't join tables otherwise. For many-to-many, add a bridge table.</li>
+<li><b>Define metrics for every calculation people discuss</b> (rates, averages, distinct counts). That's how "churn" stops meaning three different things.</li>
+<li>Use derived metrics (metric over metric) for ratios, and <code>NON ADDITIVE BY</code> for snapshot measures like balances or subscriber counts.</li>
+</ul>
+
+<h3>Synonyms: less is more</h3>
+<p>Current guidance is to <b>skip synonyms</b> unless a term is internal, an abbreviation or a legacy name the model can't know (e.g. TVM product codes). Auto-generated synonyms often make things worse.</p>
+
+<h3>Custom instructions: two kinds</h3>
+<div class="table-wrap"><table>
+<tr><th>Clause</th><th>Use for</th><th>Example</th></tr>
+<tr><td><code>AI_SQL_GENERATION</code></td><td>Business logic applied to every query</td><td>"If no date filter is given, use the last 12 complete months."</td></tr>
+<tr><td><code>AI_QUESTION_CATEGORIZATION</code></td><td>When to refuse or ask for clarification</td><td>"If a question asks about individual users, decline and explain that only aggregates are available."</td></tr>
+</table></div>
+<p>Be specific, then test after every change.</p>
+
+<h3>Verified queries: after the basics</h3>
+<ul>
+<li>Add them <b>once descriptions, relationships and metrics are solid</b>. They optimise a good model; they don't fix a weak one.</li>
+<li>Start from your <a href="discover.html">golden questions</a>. Mark 2–3 as <code>ONBOARDING_QUESTION TRUE</code> so users see them as starter questions.</li>
+<li>SQL uses <b>logical names</b> (<code>f.event_month</code>), not table columns. Double any single quote: <code>''year''</code>.</li>
+</ul>
+
+<h3>Governance and deployment</h3>
+<ul>
+<li>Masking and row access policies on the underlying tables <b>flow through</b> to the semantic view and agent.</li>
+<li>Sample values are metadata and <b>aren't masked</b>, so never put real PII in them.</li>
+<li>Use <code>copy_grants=true</code> so grants survive each <code>dbt build</code>.</li>
+<li>Promote dev → prod with your normal dbt CI/CD, or by cloning the schema.</li>
+</ul>
+
+<h2>Ask CoCo</h2>
+<p>Open CoCo in your workspace and paste one of these. Fill in the &lt;placeholders&gt;. Always read what it proposes before you build.</p>
+<pre><code>Extend {{FOLDER}}/sv_team_{{N}}.sql so it can answer the questions in golden_questions.md. Add only the columns those questions need, with business descriptions.
+
+Add a relationship from mart to &lt;dimension table&gt;. Check the join key is unique on the dimension side first.
+
+Turn golden questions 1 to 5 into verified queries in the semantic view. Run each SQL first and show me the result.</code></pre>
+
+<div class="callout ex"><strong>Sprint goal</strong>A semantic view with descriptions everywhere, the relationships your questions need, 3+ metrics and 5+ verified queries. You can query it with <code>SEMANTIC_VIEW()</code>, and 5 golden questions come back right in <em>AI &amp; ML → Cortex Analyst</em>.</div>
+
+<div class="callout warn"><strong>Common errors</strong><ul>
+<li>The model body must start with <code>TABLES(</code>, never <code>CREATE</code></li>
+<li>Clause order is fixed: <code>TABLES → RELATIONSHIPS → FACTS → DIMENSIONS → METRICS → COMMENT → AI_SQL_GENERATION → AI_QUESTION_CATEGORIZATION → AI_VERIFIED_QUERIES</code></li>
+<li>A relationship's target column must be <code>PRIMARY KEY</code> or <code>UNIQUE</code></li>
+<li>YAML <code>description:</code> in <code>schema.yml</code> doesn't reach the semantic view. Use <code>COMMENT =</code> in the body</li>
+</ul></div>
+
+<h2>Read more</h2>
+<div class="docs">
+  <a href="https://docs.snowflake.com/en/user-guide/views-semantic/best-practices-modeling"><img src="../assets/icons/idea.svg" alt=""><span><b>Best practices for modeling semantic views</b><small>Scope, descriptions, metrics, pitfalls, production checklist</small></span></a>
+  <a href="https://docs.snowflake.com/en/user-guide/views-semantic/best-practices-dev"><img src="../assets/icons/process.svg" alt=""><span><b>Developing &amp; deploying semantic views</b><small>RBAC, masking, CI/CD, dbt integration</small></span></a>
+  <a href="https://docs.snowflake.com/en/sql-reference/sql/create-semantic-view"><img src="../assets/icons/code.svg" alt=""><span><b>CREATE SEMANTIC VIEW</b><small>Full SQL syntax reference</small></span></a>
+  <a href="https://docs.snowflake.com/en/user-guide/views-semantic/custom-instructions"><img src="../assets/icons/policy.svg" alt=""><span><b>Custom instructions</b><small>SQL generation vs question categorisation</small></span></a>
+  <a href="https://docs.snowflake.com/en/user-guide/views-semantic/verified-query-repository"><img src="../assets/icons/checkmark.svg" alt=""><span><b>Verified queries</b><small>Gold questions with approved SQL</small></span></a>
+  <a href="https://hub.getdbt.com/Snowflake-Labs/dbt_semantic_view/latest/"><img src="../assets/icons/data-engineering.svg" alt=""><span><b>dbt_semantic_view package</b><small>Install, materialization, tests</small></span></a>
+</div>
+</main></div>
+<script src="../assets/app.js"></script></body></html>

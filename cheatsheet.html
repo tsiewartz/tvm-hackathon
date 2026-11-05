@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cheat sheet · Snowflake × TVM</title><link rel="stylesheet" href="assets/style.css"></head>
+<body data-page="cheatsheet" data-root="">
+<div class="doc"><aside class="sidebar"></aside><main class="content">
+<span class="pill">Finish</span>
+<h1>Cheat sheet</h1>
+<p class="lede">The syntax you need, on one page. It prints nicely.</p>
+
+<h2>dbt</h2>
+<div class="table-wrap"><table>
+<tr><th>Command</th><th>Does</th></tr>
+<tr><td><code>dbt deps</code></td><td>Install packages (dbt_semantic_view)</td></tr>
+<tr><td><code>dbt build</code></td><td><b>The one you need today:</b> build your semantic view, agent and MCP server</td></tr>
+<tr><td><code>dbt build --select sv_team_{{N}}</code></td><td>Build only your semantic view</td></tr>
+<tr><td><code>dbt ls --select +agent_team_{{N}}</code></td><td>Show what your agent depends on</td></tr>
+</table></div>
+
+<h2>Semantic view model</h2>
+<pre><code>{{ config(materialized='semantic_view', copy_grants=true) }}
+TABLES( a AS {{ source('tvm_marts', 'fct_x') }} PRIMARY KEY (id) COMMENT = '…', b AS {{ source('tvm_marts', 'dim_y') }} PRIMARY KEY (k) )
+RELATIONSHIPS( a_to_b AS a(k) REFERENCES b )
+FACTS( a.amount AS a.amount )
+DIMENSIONS( a.month AS DATE_TRUNC('month', a.dt) COMMENT = '…' )
+METRICS( a.total AS SUM(a.amount) COMMENT = '…', a.ratio AS SUM(a.x) / NULLIF(SUM(a.y), 0) )
+COMMENT = '…'
+AI_SQL_GENERATION '…'
+AI_QUESTION_CATEGORIZATION '…'
+AI_VERIFIED_QUERIES ( q1 AS ( QUESTION '…' ONBOARDING_QUESTION TRUE SQL 'SELECT … FROM a …' ) )</code></pre>
+
+<h2>From the UI into dbt</h2>
+<pre><code># bottom panel » Run operation, flags:
+export_yaml --args "{name: {{DEV_DB}}.{{SCHEMA}}.SV_TEAM_{{N}}}"
+export_yaml --args "{name: {{DEV_DB}}.{{SCHEMA}}.AGENT_TEAM_{{N}}, kind: agent}"
+# edited in the UI? export + paste BEFORE anyone builds
+# paste the output into {{FOLDER}}/sv_team_{{N}}.sql or agent_team_{{N}}.sql, then Build</code></pre>
+
+<h2>Query &amp; inspect</h2>
+<pre><code>SHOW SEMANTIC VIEWS IN SCHEMA {{DEV_DB}}.{{SCHEMA}};
+DESCRIBE SEMANTIC VIEW {{DEV_DB}}.{{SCHEMA}}.SV_TEAM_{{N}};
+SELECT * FROM SEMANTIC_VIEW({{DEV_DB}}.{{SCHEMA}}.SV_TEAM_{{N}} METRICS a.total DIMENSIONS a.month);
+
+SHOW AGENTS IN SCHEMA {{DEV_DB}}.{{SCHEMA}};        DESCRIBE AGENT {{DEV_DB}}.{{SCHEMA}}.AGENT_TEAM_{{N}};
+SHOW MCP SERVERS IN SCHEMA {{DEV_DB}}.{{SCHEMA}};   DESCRIBE MCP SERVER {{DEV_DB}}.{{SCHEMA}}.MCP_TEAM_{{N}};</code></pre>
+
+<h2>Agent spec (skeleton)</h2>
+<pre><code>{{ config(materialized='cortex_agent', meta={'display_name': '…', 'grant_usage_to': ['ROLE']}) }}
+models: { orchestration: auto }
+orchestration: { budget: { seconds: 60, tokens: 20000 } }
+instructions:
+  response: "…"
+  orchestration: "…"
+  sample_questions: [ { question: "…" } ]
+tools:
+  - tool_spec: { type: cortex_analyst_text_to_sql, name: data, description: "…" }
+  - tool_spec: { type: data_to_chart, name: data_to_chart, description: "Charts" }
+tool_resources:
+  data:
+    semantic_view: "{{ ref('sv_x') }}"
+    execution_environment: { type: warehouse, warehouse: "{{ target.warehouse }}" }</code></pre>
+
+<h2>Snowflake CoWork</h2>
+<pre><code>SHOW SNOWFLAKE INTELLIGENCES;     -- no rows = users see every agent they have USAGE on
+-- if a CoWork object exists: add meta 'cowork_object': 'SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT' (needs MODIFY)
+-- open https://ai.snowflake.com → pick your agent → run your golden questions</code></pre>
+
+<h2>MCP server spec (agent only)</h2>
+<pre><code>{{ config(materialized='mcp_server', meta={'grant_usage_to': ['ROLE']}) }}
+tools:
+  - { name: "agent", type: "CORTEX_AGENT_RUN", identifier: "{{ ref('agent_x') }}", title: "…", description: "…" }</code></pre>
+<p>Our pattern: expose <b>only the agent</b>. The other tool types exist, but they let clients bypass your agent's instructions:</p>
+<div class="table-wrap"><table>
+<tr><th>Type</th><th>Points at</th></tr>
+<tr><td><code>CORTEX_AGENT_RUN</code></td><td>A Cortex Agent</td></tr>
+<tr><td><code>CORTEX_ANALYST_MESSAGE</code></td><td>A semantic view (text-to-SQL)</td></tr>
+<tr><td><code>CORTEX_SEARCH_SERVICE_QUERY</code></td><td>A Cortex Search service</td></tr>
+<tr><td><code>GENERIC</code></td><td>A UDF or stored procedure</td></tr>
+<tr><td><code>SYSTEM_EXECUTE_SQL</code></td><td>Arbitrary SQL with your role (use with care)</td></tr>
+</table></div>
+
+<h2>Claude Code</h2>
+<pre><code>claude mcp add --transport http team-{{N}} "$MCP_URL" --header "Authorization: Bearer $SNOWFLAKE_PAT"
+claude mcp list
+claude mcp remove team-{{N}}
+# inside claude:  /mcp   /exit</code></pre>
+<h2 id="coco">Your build assistant: Snowflake CoCo</h2>
+<p>Every team builds with <b>CoCo</b> (Cortex Code), the AI assistant built into Snowsight Workspaces. Open it from the workspace next to your dbt files. It reads your project, knows Snowflake, and can write and fix the semantic view, agent and dbt models with you. It runs with <em>your</em> role, so it only sees what you can see.</p>
+<div class="dodont">
+  <div class="do"><h4>&#10003; Good prompts</h4><ul>
+    <li>"Look at <code>source('tvm_marts', ...)</code> and suggest a semantic view for our 10 golden questions"</li>
+    <li>"Add a metric for monthly churn rate to <code>sv_team_1.sql</code>, with a clear description"</li>
+    <li>"This verified query fails with invalid identifier. Fix it"</li>
+    <li>"Write agent instructions so it declines questions about individual customers"</li>
+  </ul></div>
+  <div class="dont"><h4>&#10007; Watch out</h4><ul>
+    <li>Accepting changes without reading them. Review every diff before you build</li>
+    <li>Letting it edit outside your team project</li>
+    <li>Using it instead of checking the numbers. The business tester still checks answers against known values</li>
+  </ul></div>
+</div>
+
+
+</main></div>
+<script src="assets/app.js"></script></body></html>
