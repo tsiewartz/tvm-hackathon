@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Golden path · Snowflake × TVM</title><link rel="stylesheet" href="../assets/style.css?v=075553"></head>
+<title>Golden path · Snowflake × TVM</title><link rel="stylesheet" href="../assets/style.css?v=080511"></head>
 <body data-page="golden" data-root="../">
 <div class="doc"><aside class="sidebar"></aside><main class="content">
 <span class="pill">Build path · 0</span><span class="pill o">09:50 – 10:30 · everyone together</span>
@@ -12,9 +12,9 @@
 <div class="table-wrap"><table>
 <tr><th>Who</th><th>Does</th></tr>
 <tr><td><b>Everyone</b></td><td>Step 1: the preflight check and your setup (5 minutes, during the kick-off)</td></tr>
-<tr><td><b>One driver per team</b> (the agent builder)</td><td>Steps 2–6 on the big screen, in <b>their own</b> workspace. The others help, read the data and write golden questions</td></tr>
+<tr><td><b>One driver per team</b> (the agent builder)</td><td>Steps 2–6 on the big screen: creates the team's shared workspace and builds. After step 2 the others open the same workspace, read the data and write golden questions</td></tr>
 </table></div>
-<div class="callout gr"><strong>One project per team, one person builds</strong>Workspaces can be connected to Git, which is what you'd use after today. For simplicity we work in a plain workspace today: the team's dbt project lives in the driver's workspace and only the driver runs <b>Build</b>. Teammates change things in the UI (Semantic Studio, agent editor) and tell the driver, who exports and builds. See <a href="semantic-view.html#ui">Build it in the UI, keep it in dbt</a>.</div>
+<div class="callout gr"><strong>One shared workspace per team, one person builds</strong>Workspaces can be connected to Git, which is what you'd use after today. For simplicity we work in a <b>shared workspace</b> today: the whole team sees and edits the same dbt project. Your edits are a private <b>draft</b> until you click <b>Publish</b> on the file. Rule: <b>publish, then tell the driver; only the driver runs Build</b>. Changes made in the UI (Semantic Studio, agent editor) go into the files with <a href="semantic-view.html#ui">export_yaml</a> first.</div>
 
 <h2 id="s1">1 · Preflight check <small style="font-weight:400;color:var(--muted)">(everyone, during the kick-off)</small></h2>
 <ol>
@@ -33,20 +33,29 @@
 <p style="font-size:14px;color:var(--muted)">Dev role = row 1 · Dev warehouse = row 2 · Dev database = the database in row 5 · Marts = the values you put at the top of the preflight.</p>
 <div class="callout"><strong>Something RED?</strong>Check the names you filled in first. If the row says <em>Admin fix A, B or C</em>, show it to a facilitator: the admin fixes are at the bottom of the file and take 2 minutes.</div>
 
-<h2 id="s2">2 · Download your team's project <small style="font-weight:400;color:var(--muted)">(driver)</small></h2>
+<h2 id="s2">2 · Create the team's shared workspace <small style="font-weight:400;color:var(--muted)">(driver)</small></h2>
 <ol>
 <li>Download <a data-href="../downloads/team_{{N}}_starter.zip" href="../downloads/team_1_starter.zip" download><b class="tpl">team_{{N}}_starter.zip</b></a> and unzip it. You get a folder <code>team_{{N}}/</code>.</li>
-<li><em>Projects » Workspaces</em>. Use <em>My Workspace</em>, or the workspace menu (top left) » <em>Create Workspace</em> » a blank workspace called <code>team_{{N}}</code>.</li>
+<li><em>Projects » Workspaces</em>, workspace menu (top left) » <em>Create</em> » <b>Shared workspace</b>:
+  <ul>
+  <li><b>Name:</b> <code class="tpl">TVM Hackathon – Team {{N}}</code></li>
+  <li><b>Owner role:</b> your dev role <code>{{DEV_ROLE}}</code></li>
+  <li><b>Database and schema:</b> <code>{{DEV_DB}}.{{SCHEMA}}</code> (the preflight created it)</li>
+  <li><b>Share with:</b> <code>{{DEV_ROLE}}</code>, so your teammates can edit</li>
+  </ul></li>
 <li>Click <b>+ Add New</b> (or the <b>+</b> next to the workspace name) » <b>Upload Folder</b>, and pick the unzipped <code>team_{{N}}</code> folder. Dragging doesn't work.</li>
 </ol>
 <ul class="check">
 <li><input type="checkbox"> <span>I see <code>team_{{N}}/dbt_project.yml</code>, <code>dbt_projects_profiles.yml</code>, <code>models/</code> and <code>macros/</code></span></li>
+<li><input type="checkbox"> <span>Teammates: workspace menu » <em>Shared</em> » <span class="tpl">TVM Hackathon – Team {{N}}</span> opens and shows the same files</span></li>
 </ul>
+<div class="callout"><strong>Can't see the shared workspace?</strong>The workspace list follows your role in the user menu (bottom left), not the role in a SQL file. Switch to the dev role there.</div>
 
 <h2 id="s3">3 · Paste the two files from the preflight <small style="font-weight:400;color:var(--muted)">(driver)</small></h2>
 <ol>
 <li>In the preflight result, click the cell in row <b>8</b>, copy it, and replace everything in <code>team_{{N}}/dbt_projects_profiles.yml</code>.</li>
 <li>Row <b>9</b> » replace everything in <code>team_{{N}}/models/_marts_sources.yml</code>. It lists every table in the marts schema.</li>
+<li>Click <b>Publish</b> on both files.</li>
 </ol>
 <div class="callout"><strong>Copy shows <code>\n</code> instead of new lines?</strong>Open the cell (click it, the detail pane on the right shows the full text) and copy from there. Or edit the placeholders <code>&lt;DEV_ROLE&gt;</code>, <code>&lt;DEV_WH&gt;</code>, <code>&lt;DEV_DB&gt;</code>, <code>&lt;MARTS_DB&gt;</code>, <code>&lt;MARTS_SCHEMA&gt;</code> by hand, and list your tables.</div>
 
@@ -165,6 +174,7 @@ tools:
 <h2 id="s5">5 · Build</h2>
 <p>Open <code>team_{{N}}/dbt_project.yml</code>. The dbt controls are in the <b>panel at the bottom</b> of the editor: <em>Profile</em> · <em>Environment</em> · the command button with <b>▾</b>.</p>
 <ol>
+<li><b>Publish</b> every file you changed (the build should use what the team sees).</li>
 <li><b>Profile:</b> <code>{{TARGET}}</code>. Leave <em>Environment</em> on <em>None</em>.</li>
 <li>Click <b>▾</b> » <b>Build</b> » <em>Execute</em>. No flags, no Deps, no External Access Integration needed: the project has no packages.</li>
 </ol>
@@ -205,4 +215,4 @@ ORDER BY period DESC LIMIT 12;</code></pre>
   <a href="https://docs.snowflake.com/en/user-guide/ui-snowsight/workspaces"><img src="../assets/icons/process.svg" alt=""><span><b>Workspaces</b><small>Create, upload and download files</small></span></a>
 </div>
 </main></div>
-<script src="../assets/app.js?v=075553"></script></body></html>
+<script src="../assets/app.js?v=080511"></script></body></html>

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Troubleshooting · Snowflake × TVM</title><link rel="stylesheet" href="assets/style.css?v=075553"></head>
+<title>Troubleshooting · Snowflake × TVM</title><link rel="stylesheet" href="assets/style.css?v=080511"></head>
 <body data-page="faq" data-root="">
 <div class="doc"><aside class="sidebar"></aside><main class="content">
 <span class="pill">Finish</span>
@@ -10,6 +10,10 @@
 <h3>Preflight &amp; workspace</h3>
 <details open><summary>A preflight check is RED</summary>
 <p>First check the 3 values at the top (team number, marts database, marts schema), and that your dev role and warehouse are selected. If the row says <em>Admin fix A/B/C</em>, a facilitator sends the matching lines from the bottom of <code>preflight.sql</code> to TVM's admin.</p></details>
+<details><summary>My teammate doesn't see my change</summary>
+<p>Edits are a private draft until you click <b>Publish</b> on the file. Uploads, renames and deletes are visible straight away.</p></details>
+<details><summary>I can't see the team's shared workspace</summary>
+<p>Switch to your dev role in the user menu (bottom left). The workspace list follows that role, not the role in a SQL file.</p></details>
 <details><summary>Upload doesn't keep the folders</summary>
 <p>Use <b>+ Add New » Upload Folder</b> and pick the whole unzipped <code>team_n</code> folder, not the zip and not the files inside it. You should see <code>team_n/dbt_project.yml</code>. If files landed loose, create the folder and move them in (dragging works <em>inside</em> the workspace), keeping <code>models/</code> and <code>macros/</code>.</p></details>
 <details><summary>No Profile / dbt controls in the bottom panel</summary>
@@ -59,4 +63,4 @@
 <details><summary>Queries hang or the warehouse is suspended</summary>
 <p>The daily credit cap may have been hit. That's the guardrail working, so tell a facilitator.</p></details>
 </main></div>
-<script src="assets/app.js?v=075553"></script></body></html>
+<script src="assets/app.js?v=080511"></script></body></html>
