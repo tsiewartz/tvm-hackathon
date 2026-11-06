@@ -61,12 +61,13 @@
   function renderSidebar() {
     if (!sb) return;
     const docPages = PAGES.filter(p => p.group);
-    const pct = Math.round(100 * docPages.filter(p => done[p.id]).length / docPages.length);
-    let html = `<h5>Your progress</h5><div class="progress"><i style="width:${pct}%"></i></div><small>${pct}% complete</small>`;
+    const buildPages = docPages.filter(p => p.group === 'Build path');
+    const pct = Math.round(100 * buildPages.filter(p => done[p.id]).length / buildPages.length);
+    let html = `<h5>Build path progress</h5><div class="progress"><i style="width:${pct}%"></i></div><small>${pct}% complete</small>`;
     let g = null;
     docPages.forEach(p => {
       if (p.group !== g) { g = p.group; html += `<h5>${g}</h5>`; }
-      html += `<a class="${p.id === current ? 'active' : ''} ${done[p.id] ? 'done' : ''}" href="${root}${p.href}"><span class="dot"></span>${p.title}</a>`;
+      html += `<a class="${p.id === current ? 'active' : ''} ${p.group === 'Build path' && done[p.id] ? 'done' : ''}" href="${root}${p.href}"><span class="dot"></span>${p.title}</a>`;
     });
     sb.innerHTML = html;
   }
@@ -81,6 +82,7 @@
     const prev = docPages[i - 1], next = docPages[i + 1];
     const mark = document.createElement('div');
     mark.style.marginTop = '48px';
+    if (docPages[i].group === 'Build path') {
     mark.innerHTML = `<button class="btn ${done[current] ? 'btn-outline' : 'btn-primary'}" id="markBtn">${done[current] ? '✓ Completed' : 'Mark this page complete'}</button>`;
     content.appendChild(mark);
     document.getElementById('markBtn').addEventListener('click', e => {
@@ -88,6 +90,7 @@
       e.currentTarget.textContent = done[current] ? '✓ Completed' : 'Mark this page complete';
       e.currentTarget.className = 'btn ' + (done[current] ? 'btn-outline' : 'btn-primary');
     });
+    }
     const pager = document.createElement('nav');
     pager.className = 'pager';
     pager.innerHTML = (prev ? `<a href="${root}${prev.href}"><small>← Previous</small>${prev.title}</a>` : '<span></span>') +
