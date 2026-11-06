@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Golden path · Snowflake × TVM</title><link rel="stylesheet" href="../assets/style.css?v=074640"></head>
+<title>Golden path · Snowflake × TVM</title><link rel="stylesheet" href="../assets/style.css?v=075553"></head>
 <body data-page="golden" data-root="../">
 <div class="doc"><aside class="sidebar"></aside><main class="content">
 <span class="pill">Build path · 0</span><span class="pill o">09:50 – 10:30 · everyone together</span>
@@ -12,9 +12,9 @@
 <div class="table-wrap"><table>
 <tr><th>Who</th><th>Does</th></tr>
 <tr><td><b>Everyone</b></td><td>Step 1: the preflight check and your setup (5 minutes, during the kick-off)</td></tr>
-<tr><td><b>One driver per team</b> (the agent builder)</td><td>Steps 2–7 on the big screen, in <b>their own</b> workspace. The others help, read the data and write golden questions</td></tr>
+<tr><td><b>One driver per team</b> (the agent builder)</td><td>Steps 2–6 on the big screen, in <b>their own</b> workspace. The others help, read the data and write golden questions</td></tr>
 </table></div>
-<div class="callout gr"><strong>One project per team, one person builds</strong>There's no Git today, so the team's dbt project lives in the driver's workspace. Only the driver runs <b>Build</b>. Teammates change things in the UI (Semantic Studio, agent editor) and tell the driver, who exports and builds. See <a href="semantic-view.html#ui">Build it in the UI, keep it in dbt</a>.</div>
+<div class="callout gr"><strong>One project per team, one person builds</strong>Workspaces can be connected to Git, which is what you'd use after today. For simplicity we work in a plain workspace today: the team's dbt project lives in the driver's workspace and only the driver runs <b>Build</b>. Teammates change things in the UI (Semantic Studio, agent editor) and tell the driver, who exports and builds. See <a href="semantic-view.html#ui">Build it in the UI, keep it in dbt</a>.</div>
 
 <h2 id="s1">1 · Preflight check <small style="font-weight:400;color:var(--muted)">(everyone, during the kick-off)</small></h2>
 <ol>
@@ -185,9 +185,6 @@ ORDER BY period DESC LIMIT 12;</code></pre>
 </ul>
 <div class="callout"><strong>Agent missing in CoWork, or "not authorized"?</strong>CoWork uses your <b>default role</b>, and only that role sees your agent. Set your dev role as default (user menu » <em>Settings</em>), reload CoWork. Still missing? Call a facilitator: the agent may need adding to the account's CoWork list.</div>
 
-<h2 id="s7">7 · Save a copy</h2>
-<p>Without Git, the workspace is the only copy. At every checkpoint (10:30, 12:15, 14:10): right-click <code>team_{{N}}</code> » <em>Download</em>, and drop the zip in the team channel.</p>
-
 <div class="callout ex"><strong>Checkpoint 10:30</strong>Your team has one semantic view, one agent and one MCP server in <code>{{SCHEMA}}</code>, and the agent answers in CoWork. Now continue with <a href="discover.html">1 · Discover your data</a> and make it answer <em>your</em> question.</div>
 
 <h2>If something goes wrong</h2>
@@ -208,4 +205,4 @@ ORDER BY period DESC LIMIT 12;</code></pre>
   <a href="https://docs.snowflake.com/en/user-guide/ui-snowsight/workspaces"><img src="../assets/icons/process.svg" alt=""><span><b>Workspaces</b><small>Create, upload and download files</small></span></a>
 </div>
 </main></div>
-<script src="../assets/app.js?v=074640"></script></body></html>
+<script src="../assets/app.js?v=075553"></script></body></html>
