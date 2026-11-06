@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Golden path · Snowflake × TVM</title><link rel="stylesheet" href="../assets/style.css?v=080511"></head>
+<title>Golden path · Snowflake × TVM</title><link rel="stylesheet" href="../assets/style.css?v=080759"></head>
 <body data-page="golden" data-root="../">
 <div class="doc"><aside class="sidebar"></aside><main class="content">
 <span class="pill">Build path · 0</span><span class="pill o">09:50 – 10:30 · everyone together</span>
@@ -103,8 +103,8 @@ tables:
 </div>
 <div class="tab-panel"><p>The agent: uses your semantic view as its data tool. Nothing to change yet.</p>
 <!--FILE:agent--><pre><code>{#- Team {{N}} agent. Uses your semantic view as its only data tool.
-    cowork: only if the account has a CoWork object (ask the facilitator), set it to its name,
-    e.g. 'SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT', so the agent shows up in Snowflake CoWork.  -#}
+    cowork: leave as none. Only if the agent doesn't show up in Snowflake CoWork, set it to the
+    account's CoWork object (ask the facilitator), e.g. 'SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT'.  -#}
 {%- set cowork = none -%}
 {{ config(
     materialized='cortex_agent',
@@ -193,7 +193,7 @@ ORDER BY period DESC LIMIT 12;</code></pre>
 <li><input type="checkbox"> <span>The SQL returns numbers per month</span></li>
 <li><input type="checkbox"> <span>The agent in CoWork answers with the same numbers</span></li>
 </ul>
-<div class="callout"><strong>Agent missing in CoWork, or "not authorized"?</strong>CoWork uses your <b>default role</b>, and only that role sees your agent. Set your dev role as default (user menu » <em>Settings</em>), reload CoWork. Still missing? Call a facilitator: the agent may need adding to the account's CoWork list.</div>
+<div class="callout"><strong>Agent missing in CoWork, or "not authorized"?</strong>CoWork uses your <b>default role</b>, and only that role sees your agent. Set your dev role as default (user menu » <em>Settings</em>), reload CoWork. Still missing? Ask a facilitator for the account's CoWork object name, set it as <code>cowork</code> at the top of <code>agent_team_{{N}}.sql</code>, publish and build again.</div>
 
 <div class="callout ex"><strong>Checkpoint 10:30</strong>Your team has one semantic view, one agent and one MCP server in <code>{{SCHEMA}}</code>, and the agent answers in CoWork. Now continue with <a href="discover.html">1 · Discover your data</a> and make it answer <em>your</em> question.</div>
 
@@ -215,4 +215,4 @@ ORDER BY period DESC LIMIT 12;</code></pre>
   <a href="https://docs.snowflake.com/en/user-guide/ui-snowsight/workspaces"><img src="../assets/icons/process.svg" alt=""><span><b>Workspaces</b><small>Create, upload and download files</small></span></a>
 </div>
 </main></div>
-<script src="../assets/app.js?v=080511"></script></body></html>
+<script src="../assets/app.js?v=080759"></script></body></html>
