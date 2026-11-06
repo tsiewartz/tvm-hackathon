@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MCP + Claude Code · Snowflake × TVM</title><link rel="stylesheet" href="../assets/style.css?v=081305"></head>
+<title>MCP + Claude Code · Snowflake × TVM</title><link rel="stylesheet" href="../assets/style.css?v=133116"></head>
 <body data-page="mcp" data-root="../">
 <div class="doc"><aside class="sidebar"></aside><main class="content">
 <span class="pill">Build path · 4</span>
@@ -35,8 +35,15 @@ tools:
 <ol>
 <li>Snowsight » user menu (bottom left) » <em>Settings » Authentication » Programmatic access tokens » Generate new token</em>.</li>
 <li><b>Role:</b> your dev role. <b>Expires in:</b> 1 day is enough.</li>
+<li>In the <b>⋯</b> menu of the dialog, tick <b>Bypass requirement for network policy</b> and pick 8 hours. Without this, the token is rejected unless an admin has put you under a network policy.</li>
 <li>Copy the token right away. Snowsight shows it only once.</li>
 </ol>
+<p>Or in a SQL file, as yourself:</p>
+<pre><code>ALTER USER ADD PROGRAMMATIC ACCESS TOKEN team_{{N}}_mcp
+  ROLE_RESTRICTION = '{{DEV_ROLE}}'
+  DAYS_TO_EXPIRY = 1
+  MINS_TO_BYPASS_NETWORK_POLICY_REQUIREMENT = 480;</code></pre>
+<div class="callout"><strong>Network policy</strong>The bypass only skips the <em>requirement</em> to have a network policy. If TVM's account already has one, it still applies, so use the TV4 network or VPN.</div>
 
 <h3>2 · Check the token and the URL with curl</h3>
 <p>Your account identifier is in the user menu » <em>Account » View account details</em>. Use <b>hyphens</b>, not underscores.</p>
@@ -58,7 +65,7 @@ claude      # then /mcp → team-{{N}}: connected</code></pre>
 
 <div class="table-wrap"><table>
 <tr><th>curl says</th><th>Means</th></tr>
-<tr><td><code>Invalid OAuth access token</code> (HTTP 401)</td><td>Token wrong or expired, or blocked by the network policy (are you on the TV4 network or VPN?)</td></tr>
+<tr><td><code>Invalid OAuth access token</code> (HTTP 401)</td><td>Token wrong or expired, the network-policy bypass wasn't set (step 1), or blocked by TVM's network policy (are you on the TV4 network or VPN?)</td></tr>
 <tr><td><code>MCP server … does not exist or not authorized</code></td><td>Wrong database, schema or name in the URL, or the token's role can't see the MCP server. Check the name in the message</td></tr>
 </table></div>
 
@@ -97,4 +104,4 @@ Give me the MCP URL for {{SCHEMA}}.MCP_TEAM_{{N}} on this account, and a curl co
   <a href="https://docs.anthropic.com/en/docs/claude-code/mcp"><img src="../assets/icons/laptop.svg" alt=""><span><b>Claude Code: MCP</b><small>Adding and managing MCP servers</small></span></a>
 </div>
 </main></div>
-<script src="../assets/app.js?v=081305"></script></body></html>
+<script src="../assets/app.js?v=133116"></script></body></html>
