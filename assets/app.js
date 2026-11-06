@@ -10,7 +10,6 @@
     { id: 'semantic',   title: '2 · Semantic view in dbt', href: 'build/semantic-view.html',     group: 'Build path' },
     { id: 'agent',      title: '3 · Cortex Agent in dbt',  href: 'build/agent.html',             group: 'Build path' },
     { id: 'mcp',        title: '4 · MCP + Claude Code',    href: 'build/mcp.html',               group: 'Build path' },
-    { id: 'guardrails', title: '5 · Guardrails',           href: 'build/guardrails.html',        group: 'Build path' },
     { id: 'bestpractices', title: 'Best practices',        href: 'best-practices.html',          group: 'Knowledge' },
     { id: 'ideas',      title: 'Idea bank',                href: 'ideas.html',                   group: 'Knowledge' },
     { id: 'resources',  title: 'Resources & docs',         href: 'resources.html',               group: 'Knowledge' },
@@ -43,7 +42,7 @@
     <nav class="topnav">${navIds.map(id => {
       const p = PAGES.find(x => x.id === id);
       const label = id === 'golden' ? 'Build path' : p.title;
-      const active = (id === current || (id === 'golden' && ['golden','discover','gq','semantic','agent','mcp','guardrails'].includes(current))) ? 'active' : '';
+      const active = (id === current || (id === 'golden' && ['golden','discover','gq','semantic','agent','mcp'].includes(current))) ? 'active' : '';
       return `<a class="${active}" href="${root}${p.href}">${label}</a>`;
     }).join('')}</nav>
     <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">${theme === 'dark' ? '☀' : '☾'}</button>`;
