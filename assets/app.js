@@ -200,7 +200,7 @@
     ['10:30', '11:15', 'Sprint 1 · Discover', 'build/discover.html', 'Golden questions sheet filled in, tables chosen'],
     ['11:15', '12:15', 'Sprint 2 · Semantic view', 'build/semantic-view.html', '3+ metrics, 5+ verified queries, clean build'],
     ['12:15', '13:15', 'Lunch + stand-up', 'index.html#agenda', 'One minute per team: works, blocked, next'],
-    ['13:15', '14:10', 'Sprint 3 · Agent, MCP, guardrails', 'build/agent.html', '7/10 golden questions in CoWork, Claude Code connected'],
+    ['13:15', '14:10', 'Sprint 3 · Agent & MCP', 'build/agent.html', '7/10 golden questions in CoWork, Claude Code connected'],
     ['14:10', '14:45', 'Demos', 'index.html#agenda', '8 minutes per team'],
     ['14:45', '15:00', 'MVP handoff', 'mvp-handoff.html', 'Owner named, project zip downloaded'],
   ];
