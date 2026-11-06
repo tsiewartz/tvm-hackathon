@@ -29,8 +29,8 @@
     <li>Explain TVM-specific terms, abbreviations and legacy names</li>
     <li>Use one semantic view per domain or use case, each with a clearly distinct description</li>
     <li>Use metrics for rates, averages and distinct counts</li>
-    <li>Use <code>AI_SQL_GENERATION</code> for defaults: period, currency, fiscal calendar</li>
-    <li>Use <code>AI_QUESTION_CATEGORIZATION</code> to decline or clarify</li>
+    <li>Use <code>module_custom_instructions.sql_generation</code> for defaults: period, currency, fiscal calendar</li>
+    <li>Use <code>module_custom_instructions.question_categorization</code> to decline or clarify</li>
     <li>Use Cortex Search for free-text values with many distinct values (titles, names)</li>
   </ul></div>
   <div class="dont"><h4>✗ Don't</h4><ul>
@@ -67,9 +67,9 @@
 <li><b>Layering:</b> sources → staging → marts → <code>semantic/</code> → <code>ai/</code>. AI objects are just the last layer of the DAG.</li>
 <li>Use <code>ref()</code> everywhere, including <b>inside</b> agent and MCP specs, so dbt builds in the right order.</li>
 <li><b>Test the marts</b> under your semantic view (unique, not_null, relationships). The agent is only as good as the data under it.</li>
-<li>Use <code>copy_grants=true</code> on semantic views, and manage grants in code.</li>
+<li>Manage grants in code (dbt <code>meta</code> or <code>post-hook</code>), not by hand.</li>
 <li>Use one target schema per team or developer in dev, and promote through CI.</li>
-<li>Pin package versions in <code>packages.yml</code>.</li>
+<li>After today, in TVM's repo: pin dbt and package versions.</li>
 </ul>
 <p class="readmore"><a href="https://docs.snowflake.com/en/user-guide/views-semantic/best-practices-dev">Best practices for developing &amp; deploying semantic views</a></p>
 
@@ -85,8 +85,8 @@
 <div class="table-wrap"><table>
 <tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr>
 <tr><td>Wrong numbers, plausible SQL</td><td>Metric not defined, so the AI invents one</td><td>Add the metric with a precise description</td></tr>
-<tr><td>"Can't answer" on join questions</td><td>A missing relationship</td><td>Add it to <code>RELATIONSHIPS</code> (target needs a PK or UNIQUE)</td></tr>
-<tr><td>Wrong time period</td><td>No default rule</td><td>Add an <code>AI_SQL_GENERATION</code> rule for default periods</td></tr>
+<tr><td>"Can't answer" on join questions</td><td>A missing relationship</td><td>Add it under <code>relationships:</code> (the right table needs a <code>primary_key</code>)</td></tr>
+<tr><td>Wrong time period</td><td>No default rule</td><td>Add a <code>sql_generation</code> rule for default periods</td></tr>
 <tr><td>Text filter returns 0 rows</td><td>The value is spelled differently in the data</td><td>Add a Cortex Search service on that dimension</td></tr>
 <tr><td>Agent picks the wrong tool</td><td>Vague or overlapping tool descriptions</td><td>Make descriptions distinct, using words from your questions</td></tr>
 <tr><td>Scope creep</td><td>"Just one more table"</td><td>Back to the golden questions. Everything else goes on the backlog</td></tr>

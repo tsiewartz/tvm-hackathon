@@ -13,10 +13,10 @@ python3 -m http.server 8000 --directory site
 
 ## Team picker
 The **Your team…** menu in the top bar (stored in localStorage) fills these tokens in every `<code>` and `.tpl` element:
-`{{N}}`, `{{SCHEMA}}` (HACK_TEAM_n), `{{BRANCH}}` (hackathon/team-n), `{{FOLDER}}` (models/hackathon/team_n), `{{TARGET}}` (team_n).
+`{{N}}`, `{{SCHEMA}}` (HACK_TEAM_n), `{{FOLDER}}` (team_n/models), `{{TARGET}}` (team_n).
 
 ## TVM's names
-Fill in `CONFIG` at the top of the team picker in `assets/app.js` (dev database, dev role, warehouse, Git integration, repo URL). Until then the site shows `<DEV_DB>` etc. Tokens: `{{DEV_DB}}`, `{{DEV_ROLE}}`, `{{DEV_WH}}`, `{{GIT_API}}`, `{{REPO}}`, `{{EAI}}`.
+Participants fill in their own names in the *Your setup* box (golden path step 1, saved in the browser). A value set in `CONFIG` in `assets/app.js` wins for everyone. Tokens: `{{DEV_DB}}`, `{{DEV_ROLE}}`, `{{DEV_WH}}`, `{{MARTS_DB}}`, `{{MARTS_SCHEMA}}`.
 
 ## Live "Now" bar
 On 6 November (Stockholm time) every page shows the current block and its checkpoint. Preview any time with `?now=10:40`.

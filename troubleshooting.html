@@ -16,14 +16,14 @@
 <p>Open a file inside <code>team_n/</code>. The profile list comes from <code>team_n/dbt_projects_profiles.yml</code>: paste row 9 of the preflight into it.</p></details>
 
 <h3>Semantic views</h3>
-<details><summary><code>syntax error … unexpected 'CREATE'</code></summary>
-<p>The model body must start with <code>TABLES(</code>. The package adds <code>CREATE OR REPLACE SEMANTIC VIEW</code> for you.</p></details>
+<details><summary>YAML error when building the semantic view</summary>
+<p>The model body is YAML only, no <code>CREATE</code>. Check the indentation: two spaces per level, list items start with <code>- </code>. Most errors are one misaligned line.</p></details>
 <details><summary><code>invalid identifier</code> in a verified query</summary>
-<p>Verified-query SQL uses the semantic view's <b>logical</b> names (<code>f.event_month</code>), not the physical columns. Also double any single quotes.</p></details>
+<p>Verified-query SQL uses the semantic view's <b>logical</b> names (<code>FROM mart</code>, <code>period</code>), not the physical table and columns. Use <code>sql: |</code> so quotes need no escaping.</p></details>
 <details><summary>Relationship error: referenced key</summary>
-<p>The referenced table needs <code>PRIMARY KEY (…)</code> or <code>UNIQUE (…)</code> on the join column in <code>TABLES()</code>.</p></details>
+<p>The table in <code>right_table</code> needs <code>primary_key: {columns: [...]}</code> (or <code>unique_keys</code>) on the join column.</p></details>
 <details><summary>Descriptions from <code>schema.yml</code> don't show up</summary>
-<p>They don't reach the semantic view. Put <code>COMMENT = '…'</code> in the model body.</p></details>
+<p>They don't reach the semantic view. Put <code>description:</code> on the table, dimension, fact or metric in the model's YAML.</p></details>
 
 <h3>Agents</h3>
 <details><summary>The answer looks wrong</summary>

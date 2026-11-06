@@ -52,6 +52,25 @@ BEGIN
     r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(5, 'Read the marts', 'RED', :mdb || '.' || :msch || ': ' || LEFT(:sqlerrm, 150) || ' (check the name, or Admin fix B)'));
   END;
 
+  -- 3b marts not found: list the schemas this role can see, mart-like names first
+  IF (:n_tables = 0) THEN
+    BEGIN
+      SHOW TERSE SCHEMAS IN ACCOUNT;
+      LET qs VARCHAR := LAST_QUERY_ID();
+      LET cand VARCHAR := (
+        SELECT LISTAGG(fq, ', ') WITHIN GROUP (ORDER BY pri, fq) FROM (
+          SELECT "database_name" || '.' || "name" AS fq, IFF("name" ILIKE '%MART%' OR "database_name" ILIKE '%MART%', 0, 1) AS pri
+          FROM TABLE(RESULT_SCAN(:qs))
+          WHERE "name" NOT IN ('INFORMATION_SCHEMA', 'PUBLIC')
+            AND "database_name" NOT IN ('SNOWFLAKE', 'SNOWFLAKE_SAMPLE_DATA') AND "database_name" NOT ILIKE 'USER$%'
+          ORDER BY pri, fq LIMIT 40));
+      r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(5.5, 'Schemas you can see', 'INFO',
+        'Pick the marts schema, put it in MARTS_DB / MARTS_SCHEMA at the top and run again: ' || COALESCE(:cand, 'none found')));
+    EXCEPTION WHEN OTHER THEN
+      r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(5.5, 'Schemas you can see', 'INFO', 'Could not list schemas: ' || LEFT(:sqlerrm, 120)));
+    END;
+  END IF;
+
   -- 4 team schema: create HACK_TEAM_n in the current database, else fall back to the current schema
   db  := CURRENT_DATABASE();
   sch := 'HACK_TEAM_' || :team;
@@ -94,7 +113,7 @@ BEGIN
     'version: 2\nsources:\n  - name: tvm_marts\n    database: ' || :mdb || '\n    schema: ' || :msch || '\n    tables:\n' || COALESCE(:tbls, '      - name: <table>') || '\n'));
 
   LET js VARCHAR := TO_JSON(:r);
-  res := (SELECT v.value[0]::INT AS "#", v.value[1]::VARCHAR AS "Check", v.value[2]::VARCHAR AS "Status", v.value[3]::VARCHAR AS "Detail / what to copy"
+  res := (SELECT v.value[0]::NUMBER(3,1) AS "#", v.value[1]::VARCHAR AS "Check", v.value[2]::VARCHAR AS "Status", v.value[3]::VARCHAR AS "Detail / what to copy"
           FROM TABLE(FLATTEN(INPUT => PARSE_JSON(:js))) v ORDER BY 1);
   RETURN TABLE(res);
 END;

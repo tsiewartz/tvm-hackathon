@@ -10,23 +10,41 @@
 <h2>dbt</h2>
 <div class="table-wrap"><table>
 <tr><th>Command</th><th>Does</th></tr>
-<tr><td><code>dbt deps</code></td><td>Install packages (dbt_semantic_view)</td></tr>
 <tr><td><code>dbt build</code></td><td><b>The one you need today:</b> build your semantic view, agent and MCP server</td></tr>
 <tr><td><code>dbt build --select sv_team_{{N}}</code></td><td>Build only your semantic view</td></tr>
 <tr><td><code>dbt ls --select +agent_team_{{N}}</code></td><td>Show what your agent depends on</td></tr>
 </table></div>
 
 <h2>Semantic view model</h2>
-<pre><code>{{ config(materialized='semantic_view', copy_grants=true) }}
-TABLES( a AS {{ source('tvm_marts', 'fct_x') }} PRIMARY KEY (id) COMMENT = '…', b AS {{ source('tvm_marts', 'dim_y') }} PRIMARY KEY (k) )
-RELATIONSHIPS( a_to_b AS a(k) REFERENCES b )
-FACTS( a.amount AS a.amount )
-DIMENSIONS( a.month AS DATE_TRUNC('month', a.dt) COMMENT = '…' )
-METRICS( a.total AS SUM(a.amount) COMMENT = '…', a.ratio AS SUM(a.x) / NULLIF(SUM(a.y), 0) )
-COMMENT = '…'
-AI_SQL_GENERATION '…'
-AI_QUESTION_CATEGORIZATION '…'
-AI_VERIFIED_QUERIES ( q1 AS ( QUESTION '…' ONBOARDING_QUESTION TRUE SQL 'SELECT … FROM a …' ) )</code></pre>
+<pre><code>{{ config(materialized='semantic_view_yaml') }}
+description: '…'
+tables:
+  - name: A
+    description: '…'
+    base_table: {{ base_table(source('tvm_marts', 'fct_x')) }}
+    dimensions:
+      - { name: MONTH, description: '…', expr: a.month_start }
+    facts:
+      - { name: AMOUNT, description: '…', expr: a.amount }
+    metrics:
+      - { name: TOTAL, description: '…', expr: SUM(a.amount) }
+  - name: B
+    base_table: {{ base_table(source('tvm_marts', 'dim_y')) }}
+    primary_key: { columns: [k] }
+relationships:
+  - name: a_to_b
+    left_table: A
+    right_table: B
+    relationship_columns: [{ left_column: k, right_column: k }]
+module_custom_instructions:
+  sql_generation: '…'
+  question_categorization: '…'
+verified_queries:
+  - name: q1
+    question: '…'
+    use_as_onboarding_question: true
+    sql: |
+      SELECT month, SUM(amount) FROM a GROUP BY 1</code></pre>
 
 <h2>From the UI into dbt</h2>
 <pre><code># bottom panel » Run operation, flags:

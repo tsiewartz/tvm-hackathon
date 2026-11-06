@@ -132,24 +132,27 @@
     }));
   });
 
-  /* TVM's names for the day. Fill these in once (from Astrid) and every page shows them. */
+  /* TVM's names for the day. Leave empty: each person fills them in once in the "Your setup" box
+     (golden path, step 1), saved in their browser. A value set here wins for everyone. */
   const CONFIG = {
-    DEV_DB:   '',   // dev database, e.g. TVM_DEV
-    DEV_ROLE: '',   // the dev role everyone uses
-    DEV_WH:   '',   // the dev warehouse
-    GIT_API:  '',   // the Git API integration name
-    REPO:     '',   // https://github.com/<org>/<repo>
-    EAI:      'TVM_DBT_PACKAGES_EAI',
+    DEV_DB:       '',   // database the team schemas go in (preflight row 6)
+    DEV_ROLE:     '',   // dev role (preflight row 1)
+    DEV_WH:       '',   // dev warehouse (preflight row 2)
+    MARTS_DB:     '',   // database with TVM's marts
+    MARTS_SCHEMA: '',   // schema with TVM's marts
   };
+  const SETUP_LABELS = { DEV_ROLE: 'Dev role', DEV_WH: 'Dev warehouse', DEV_DB: 'Dev database',
+                         MARTS_DB: 'Marts database', MARTS_SCHEMA: 'Marts schema' };
+  const cfgValue = k => CONFIG[k] || (JSON.parse(localStorage.getItem('tvm:cfg') || '{}')[k] || '').trim().toUpperCase();
   const CFG_TOKENS = Object.keys(CONFIG).map(k => '{{' + k + '}}');
 
-  /* team picker: fills {{N}}, {{SCHEMA}}, {{BRANCH}}, {{FOLDER}}, {{TARGET}} in code everywhere */
-  const TOKENS = ['{{N}}', '{{SCHEMA}}', '{{BRANCH}}', '{{FOLDER}}', '{{TARGET}}', ...CFG_TOKENS];
+  /* team picker: fills {{N}}, {{SCHEMA}}, {{FOLDER}}, {{TARGET}} and the setup values in code everywhere */
+  const TOKENS = ['{{N}}', '{{SCHEMA}}', '{{FOLDER}}', '{{TARGET}}', ...CFG_TOKENS];
   function teamValues(n) {
-    const cfg = Object.fromEntries(Object.entries(CONFIG).map(([k, v]) => ['{{' + k + '}}', v || '<' + k + '>']));
-    return n ? { ...cfg, '{{N}}': n, '{{SCHEMA}}': 'HACK_TEAM_' + n, '{{BRANCH}}': 'hackathon/team-' + n,
+    const cfg = Object.fromEntries(Object.keys(CONFIG).map(k => ['{{' + k + '}}', cfgValue(k) || '<' + k + '>']));
+    return n ? { ...cfg, '{{N}}': n, '{{SCHEMA}}': 'HACK_TEAM_' + n,
                  '{{FOLDER}}': 'team_' + n + '/models', '{{TARGET}}': 'team_' + n }
-             : { ...cfg, '{{N}}': 'n', '{{SCHEMA}}': 'HACK_TEAM_n', '{{BRANCH}}': 'hackathon/team-n',
+             : { ...cfg, '{{N}}': 'n', '{{SCHEMA}}': 'HACK_TEAM_n',
                  '{{FOLDER}}': 'team_n/models', '{{TARGET}}': 'team_n' };
   }
   document.querySelectorAll('code, .tpl').forEach(c => { if (TOKENS.some(t => c.textContent.includes(t))) c.dataset.tpl = c.textContent; });
@@ -162,6 +165,22 @@
     document.querySelectorAll('.team-select').forEach(s => { s.value = n || ''; });
     document.querySelectorAll('[data-team-label]').forEach(el => { el.textContent = n ? 'Team ' + n : 'Pick your team'; });
   }
+  /* "Your setup" box: <div data-setup></div> */
+  document.querySelectorAll('[data-setup]').forEach(box => {
+    const saved = JSON.parse(localStorage.getItem('tvm:cfg') || '{}');
+    box.className = 'setup-box';
+    box.innerHTML = Object.entries(SETUP_LABELS).map(([k, l]) =>
+      `<label><span>${l}</span><input data-cfg="${k}" spellcheck="false" autocomplete="off" placeholder="${k}"` +
+      (CONFIG[k] ? ` value="${CONFIG[k]}" disabled` : '') + `></label>`).join('');
+    box.querySelectorAll('input').forEach(i => {
+      if (!CONFIG[i.dataset.cfg]) i.value = saved[i.dataset.cfg] || '';
+      i.addEventListener('input', () => {
+        const cur = JSON.parse(localStorage.getItem('tvm:cfg') || '{}');
+        cur[i.dataset.cfg] = i.value; localStorage.setItem('tvm:cfg', JSON.stringify(cur));
+        applyTeam(store.get('team'));
+      });
+    });
+  });
   const picker = document.createElement('select');
   picker.className = 'team-select'; picker.setAttribute('aria-label', 'Your team');
   picker.innerHTML = '<option value="">Your team…</option>' + [1, 2, 3, 4].map(n => `<option value="${n}">Team ${n}</option>`).join('');
@@ -174,7 +193,7 @@
   /* live "now" bar: current block + next checkpoint, Stockholm time, on the day only.
      Preview any time with ?now=10:40 */
   const AGENDA = [
-    ['09:30', '09:50', 'Kick-off', 'index.html#agenda', 'Teams sit together, everyone on the site with their team picked'],
+    ['09:30', '09:50', 'Kick-off + preflight', 'build/golden-path.html#s1', 'Team picked, preflight green, setup filled in'],
     ['09:50', '10:30', 'Golden path', 'build/golden-path.html', 'All teams have an agent that answers in CoWork'],
     ['10:30', '11:15', 'Sprint 1 · Discover', 'build/discover.html', 'Golden questions sheet filled in, tables chosen'],
     ['11:15', '12:15', 'Sprint 2 · Semantic view', 'build/semantic-view.html', '3+ metrics, 5+ verified queries, clean build'],
@@ -199,7 +218,7 @@
     if (!day || m < mins('09:00') || m >= mins('15:30')) { if (bar) bar.remove(); return; }
     if (!bar) { bar = document.createElement('div'); bar.id = 'nowbar'; bar.className = 'nowbar'; top.after(bar); }
     if (idx < 0) {
-      bar.innerHTML = m < mins('09:30') ? `<span class="nb-now">NOW</span> <a href="${root}build/golden-path.html#s1"><b>Preflight check</b></a> <span class="nb-time">kick-off at 09:30 · in ${mins('09:30') - m} min</span><span class="nb-goal"><b>Checkpoint:</b> pick your team, run preflight.sql, all green</span>`
+      bar.innerHTML = m < mins('09:30') ? `<span class="nb-now">NOW</span> <a href="${root}index.html#agenda"><b>Starting soon</b></a> <span class="nb-time">kick-off at 09:30 · in ${mins('09:30') - m} min</span><span class="nb-goal">Open this site and pick your team in the top menu</span>`
                                        : `<b>That's a wrap!</b> · thank you, see you at the follow-up`;
       return;
     }

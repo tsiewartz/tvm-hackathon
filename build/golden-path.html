@@ -11,22 +11,26 @@
 
 <div class="table-wrap"><table>
 <tr><th>Who</th><th>Does</th></tr>
-<tr><td><b>Everyone</b></td><td>Step 1: the preflight check (2 minutes)</td></tr>
+<tr><td><b>Everyone</b></td><td>Step 1: the preflight check and your setup (5 minutes, during the kick-off)</td></tr>
 <tr><td><b>One driver per team</b> (the agent builder)</td><td>Steps 2–7 on the big screen, in <b>their own</b> workspace. The others help, read the data and write golden questions</td></tr>
 </table></div>
-<div class="callout gr"><strong>One project per team, one person builds</strong>There's no Git today, so the team's dbt project lives in the driver's workspace. Only the driver runs <b>Build</b>. Teammates change things in the UI (Semantic Studio, agent editor) and tell the driver, who exports and builds. See <a href="semantic-view.html">From the UI back to dbt</a>.</div>
+<div class="callout gr"><strong>One project per team, one person builds</strong>There's no Git today, so the team's dbt project lives in the driver's workspace. Only the driver runs <b>Build</b>. Teammates change things in the UI (Semantic Studio, agent editor) and tell the driver, who exports and builds. See <a href="semantic-view.html#ui">Build it in the UI, keep it in dbt</a>.</div>
 
-<h2 id="s1">1 · Preflight check <small style="font-weight:400;color:var(--muted)">(everyone, 09:00–09:50)</small></h2>
+<h2 id="s1">1 · Preflight check <small style="font-weight:400;color:var(--muted)">(everyone, during the kick-off)</small></h2>
 <ol>
 <li>Snowsight, user menu (bottom left) » switch to your <b>dev role</b>.</li>
 <li>Download <a href="../downloads/preflight.sql" download><b>preflight.sql</b></a>, open a new SQL worksheet and paste it in. Pick your dev warehouse and a database you work in (top right).</li>
-<li>Fill in the 3 lines at the top: team number, and the database and schema of TVM's marts (on the screen).</li>
+<li>Fill in the 3 lines at the top: your team number, and the database and schema of TVM's marts. Don't know the marts? Leave them as they are: the result lists the schemas you can read.</li>
 <li><b>Run all</b> (Cmd/Ctrl + Shift + Enter).</li>
 </ol>
 <ul class="check">
 <li><input type="checkbox"> <span>Checks 1–8 are <b>GREEN</b></span></li>
 <li><input type="checkbox"> <span>Driver: rows 9 and 10 show the two files to paste (keep the worksheet open)</span></li>
 </ul>
+<h3 id="setup">Your setup</h3>
+<p>Type the values from the preflight here once. Every command on this site then shows them. Saved in your browser only.</p>
+<div data-setup></div>
+<p style="font-size:14px;color:var(--muted)">Dev role = row 1 · Dev warehouse = row 2 · Dev database = the database in row 6 · Marts = the values you put at the top of the preflight.</p>
 <div class="callout"><strong>Something RED?</strong>Check the names you filled in first. If the row says <em>Admin fix A, B or C</em>, show it to a facilitator: the admin fixes are at the bottom of the file and take 2 minutes.</div>
 
 <h2 id="s2">2 · Download your team's project <small style="font-weight:400;color:var(--muted)">(driver)</small></h2>
@@ -169,7 +173,7 @@ tools:
 </ul>
 <div class="callout"><strong>Two run buttons</strong>The <em>Run file ▾</em> button at the top only runs the open file. Use the bottom panel.</div>
 
-<h2 id="s7">6 · Ask your first question</h2>
+<h2 id="s6">6 · Ask your first question</h2>
 <p>In a SQL file in your workspace:</p>
 <pre><code>SELECT * FROM SEMANTIC_VIEW({{DEV_DB}}.{{SCHEMA}}.SV_TEAM_{{N}}
   METRICS mart.total_amount DIMENSIONS mart.period)
@@ -181,7 +185,7 @@ ORDER BY 1 DESC LIMIT 12;</code></pre>
 </ul>
 <div class="callout"><strong>Agent missing in CoWork, or "not authorized"?</strong>CoWork uses your <b>default role</b>, and only that role sees your agent. Set your dev role as default (user menu » <em>Settings</em>), reload CoWork. Still missing? Call a facilitator: the agent may need adding to the account's CoWork list.</div>
 
-<h2 id="s8">7 · Save a copy</h2>
+<h2 id="s7">7 · Save a copy</h2>
 <p>Without Git, the workspace is the only copy. At every checkpoint (10:30, 12:15, 14:10): right-click <code>team_{{N}}</code> » <em>Download</em>, and drop the zip in the team channel.</p>
 
 <div class="callout ex"><strong>Checkpoint 10:30</strong>Your team has one semantic view, one agent and one MCP server in <code>{{SCHEMA}}</code>, and the agent answers in CoWork. Now continue with <a href="discover.html">1 · Discover your data</a> and make it answer <em>your</em> question.</div>

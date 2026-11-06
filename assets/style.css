@@ -271,3 +271,8 @@ footer{border-top:1px solid var(--line);padding:30px clamp(16px,4vw,48px);color:
 .lu pre{margin:8px 0}
 .lu-sub{color:var(--muted);margin-top:-4px}
 .lu-docs{font-size:14px;color:var(--muted)}
+
+/* "Your setup" box */
+.setup-box{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 16px;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:12px 0;background:var(--bg2)}
+.setup-box label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted)}
+.setup-box input{font:inherit;font-family:ui-monospace,Menlo,monospace;font-size:14px;font-weight:400;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:inherit;text-transform:uppercase}
