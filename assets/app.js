@@ -98,7 +98,7 @@
 
   /* footer */
   const f = document.createElement('footer');
-  f.innerHTML = `<img class="foot-logo" src="${root}assets/snowflake-logo.svg" alt="Snowflake"> <span class="partner big"><img src="${root}assets/logos/tv4.png" alt="TV4"><img src="${root}assets/logos/mtv.png" alt="MTV"></span><br>Snowflake × TVM Hackathon · 6 November 2026 · TV4 Media, Stockholm<br>4 teams · real data · one MVP each · built with dbt, Semantic Views, Cortex Agents &amp; MCP`;
+  f.innerHTML = `<img class="foot-logo" src="${root}assets/snowflake-logo.svg" alt="Snowflake"> <span class="partner big"><img src="${root}assets/logos/tv4.png" alt="TV4"><img src="${root}assets/logos/mtv.png" alt="MTV"></span><br>Snowflake × TVM Hackathon · 6 November 2026 · TV4 Media, Stockholm`;
   body.appendChild(f);
 
   /* copy buttons */
