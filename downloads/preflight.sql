@@ -46,10 +46,10 @@ BEGIN
     LET nv INTEGER := (SELECT COUNT(*) FROM TABLE(RESULT_SCAN(:qv)));
     LET vl VARCHAR := (SELECT LISTAGG('      - name: ' || LOWER("name"), '\n') WITHIN GROUP (ORDER BY "name") FROM TABLE(RESULT_SCAN(:qv)));
     IF (nv > 0) THEN tbls := IFF(:tbls = '' OR :tbls IS NULL, vl, :tbls || '\n' || vl); n_tables := :n_tables + nv; END IF;
-    r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(5, 'Read the marts', IFF(:n_tables > 0, 'GREEN', 'RED'),
+    r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(4, 'Read the marts', IFF(:n_tables > 0, 'GREEN', 'RED'),
       :n_tables || ' tables/views visible in ' || :mdb || '.' || :msch || IFF(:n_tables > 0, '', ' (wrong name, or Admin fix B)')));
   EXCEPTION WHEN OTHER THEN
-    r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(5, 'Read the marts', 'RED', :mdb || '.' || :msch || ': ' || LEFT(:sqlerrm, 150) || ' (check the name, or Admin fix B)'));
+    r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(4, 'Read the marts', 'RED', :mdb || '.' || :msch || ': ' || LEFT(:sqlerrm, 150) || ' (check the name, or Admin fix B)'));
   END;
 
   -- 3b marts not found: list the schemas this role can see, mart-like names first
@@ -64,10 +64,10 @@ BEGIN
           WHERE "name" NOT IN ('INFORMATION_SCHEMA', 'PUBLIC')
             AND "database_name" NOT IN ('SNOWFLAKE', 'SNOWFLAKE_SAMPLE_DATA') AND "database_name" NOT ILIKE 'USER$%'
           ORDER BY pri, fq LIMIT 40));
-      r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(5.5, 'Schemas you can see', 'INFO',
+      r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(4.5, 'Schemas you can see', 'INFO',
         'Pick the marts schema, put it in MARTS_DB / MARTS_SCHEMA at the top and run again: ' || COALESCE(:cand, 'none found')));
     EXCEPTION WHEN OTHER THEN
-      r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(5.5, 'Schemas you can see', 'INFO', 'Could not list schemas: ' || LEFT(:sqlerrm, 120)));
+      r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(4.5, 'Schemas you can see', 'INFO', 'Could not list schemas: ' || LEFT(:sqlerrm, 120)));
     END;
   END IF;
 
@@ -78,43 +78,43 @@ BEGIN
     IF (:db IS NULL) THEN db := :mdb; END IF;
     EXECUTE IMMEDIATE 'CREATE SCHEMA IF NOT EXISTS IDENTIFIER(''' || :db || '.' || :sch || ''') COMMENT = ''Snowflake x TVM hackathon, team ' || :team || '''';
     ok_schema := TRUE;
-    r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(6, 'Team schema', 'GREEN', :db || '.' || :sch || ' is ready'));
+    r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(5, 'Team schema', 'GREEN', :db || '.' || :sch || ' is ready'));
   EXCEPTION WHEN OTHER THEN
-    r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(6, 'Team schema', 'RED', 'Cannot create ' || :db || '.' || :sch || ': ' || LEFT(:sqlerrm, 120) || ' (Admin fix C, or use a dev schema you own)'));
+    r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(5, 'Team schema', 'RED', 'Cannot create ' || :db || '.' || :sch || ': ' || LEFT(:sqlerrm, 120) || ' (Admin fix C, or use a dev schema you own)'));
   END;
 
   -- 5 build test: semantic view + agent in the team schema, then clean up
   IF (:ok_schema AND :n_tables > 0) THEN
     BEGIN
       EXECUTE IMMEDIATE 'CREATE OR REPLACE SEMANTIC VIEW "' || :db || '"."' || :sch || '".PREFLIGHT_SV TABLES (t AS "' || :mdb || '"."' || :msch || '".' || :first_tbl || ') METRICS (t.row_count AS COUNT(*))';
-      r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(7, 'Create a semantic view', 'GREEN', 'Test view on ' || :first_tbl || ' created and dropped'));
+      r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(6, 'Create a semantic view', 'GREEN', 'Test view on ' || :first_tbl || ' created and dropped'));
       EXECUTE IMMEDIATE 'DROP SEMANTIC VIEW IF EXISTS "' || :db || '"."' || :sch || '".PREFLIGHT_SV';
     EXCEPTION WHEN OTHER THEN
-      r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(7, 'Create a semantic view', 'RED', LEFT(:sqlerrm, 160)));
+      r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(6, 'Create a semantic view', 'RED', LEFT(:sqlerrm, 160)));
     END;
     BEGIN
       EXECUTE IMMEDIATE 'CREATE OR REPLACE AGENT "' || :db || '"."' || :sch || '".PREFLIGHT_AGENT FROM SPECIFICATION $' || '$models:\n  orchestration: auto$' || '$';
-      r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(8, 'Create an agent', 'GREEN', 'Test agent created and dropped'));
+      r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(7, 'Create an agent', 'GREEN', 'Test agent created and dropped'));
       EXECUTE IMMEDIATE 'DROP AGENT IF EXISTS "' || :db || '"."' || :sch || '".PREFLIGHT_AGENT';
     EXCEPTION WHEN OTHER THEN
-      r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(8, 'Create an agent', 'RED', LEFT(:sqlerrm, 160) || ' (Admin fix A)'));
+      r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(7, 'Create an agent', 'RED', LEFT(:sqlerrm, 160) || ' (Admin fix A)'));
     END;
   ELSE
-    r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(7, 'Create a semantic view', 'SKIPPED', 'Needs checks 5 and 6'));
-    r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(8, 'Create an agent', 'SKIPPED', 'Needs checks 5 and 6'));
+    r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(6, 'Create a semantic view', 'SKIPPED', 'Needs checks 4 and 5'));
+    r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(7, 'Create an agent', 'SKIPPED', 'Needs checks 4 and 5'));
   END IF;
 
   -- 6 the two files to paste into your project
-  r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(9, 'PASTE INTO dbt_projects_profiles.yml', 'COPY',
+  r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(8, 'PASTE INTO dbt_projects_profiles.yml', 'COPY',
     'tvm_hackathon:\n  target: team_' || :team || '\n  outputs:\n    team_' || :team || ':\n      type: snowflake\n      account: ''not needed''\n      user: ''not needed''\n' ||
     '      role: ' || COALESCE(:role_name, '<DEV_ROLE>') || '\n      warehouse: ' || COALESCE(:wh, '<DEV_WH>') || '\n      database: ' || COALESCE(:db, '<DEV_DB>') ||
     '\n      schema: ' || :sch || '\n      threads: 4\n      query_tag: tvm_hackathon\n'));
-  r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(10, 'PASTE INTO models/_marts_sources.yml', 'COPY',
+  r := ARRAY_APPEND(r, ARRAY_CONSTRUCT(9, 'PASTE INTO models/_marts_sources.yml', 'COPY',
     'version: 2\nsources:\n  - name: tvm_marts\n    database: ' || :mdb || '\n    schema: ' || :msch || '\n    tables:\n' || COALESCE(:tbls, '      - name: <table>') || '\n'));
 
   LET js VARCHAR := TO_JSON(:r);
-  res := (SELECT v.value[0]::NUMBER(3,1) AS "#", v.value[1]::VARCHAR AS "Check", v.value[2]::VARCHAR AS "Status", v.value[3]::VARCHAR AS "Detail / what to copy"
-          FROM TABLE(FLATTEN(INPUT => PARSE_JSON(:js))) v ORDER BY 1);
+  res := (SELECT v.value[0]::VARCHAR AS "#", v.value[1]::VARCHAR AS "Check", v.value[2]::VARCHAR AS "Status", v.value[3]::VARCHAR AS "Detail / what to copy"
+          FROM TABLE(FLATTEN(INPUT => PARSE_JSON(:js))) v ORDER BY v.value[0]::FLOAT);
   RETURN TABLE(res);
 END;
 $$;

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Golden path · Snowflake × TVM</title><link rel="stylesheet" href="../assets/style.css?v=073321"></head>
+<title>Golden path · Snowflake × TVM</title><link rel="stylesheet" href="../assets/style.css?v=074316"></head>
 <body data-page="golden" data-root="../">
 <div class="doc"><aside class="sidebar"></aside><main class="content">
 <span class="pill">Build path · 0</span><span class="pill o">09:50 – 10:30 · everyone together</span>
@@ -24,13 +24,13 @@
 <li><b>Run all</b> (Cmd/Ctrl + Shift + Enter).</li>
 </ol>
 <ul class="check">
-<li><input type="checkbox"> <span>Checks 1–8 are <b>GREEN</b></span></li>
-<li><input type="checkbox"> <span>Driver: rows 9 and 10 show the two files to paste (keep the worksheet open)</span></li>
+<li><input type="checkbox"> <span>Checks 1–7 are <b>GREEN</b></span></li>
+<li><input type="checkbox"> <span>Driver: rows 8 and 9 show the two files to paste (keep the worksheet open)</span></li>
 </ul>
 <h3 id="setup">Your setup</h3>
 <p>Type the values from the preflight here once. Every command on this site then shows them. Saved in your browser only.</p>
 <div data-setup></div>
-<p style="font-size:14px;color:var(--muted)">Dev role = row 1 · Dev warehouse = row 2 · Dev database = the database in row 6 · Marts = the values you put at the top of the preflight.</p>
+<p style="font-size:14px;color:var(--muted)">Dev role = row 1 · Dev warehouse = row 2 · Dev database = the database in row 5 · Marts = the values you put at the top of the preflight.</p>
 <div class="callout"><strong>Something RED?</strong>Check the names you filled in first. If the row says <em>Admin fix A, B or C</em>, show it to a facilitator: the admin fixes are at the bottom of the file and take 2 minutes.</div>
 
 <h2 id="s2">2 · Download your team's project <small style="font-weight:400;color:var(--muted)">(driver)</small></h2>
@@ -45,8 +45,8 @@
 
 <h2 id="s3">3 · Paste the two files from the preflight <small style="font-weight:400;color:var(--muted)">(driver)</small></h2>
 <ol>
-<li>In the preflight result, click the cell in row <b>9</b>, copy it, and replace everything in <code>team_{{N}}/dbt_projects_profiles.yml</code>.</li>
-<li>Row <b>10</b> » replace everything in <code>team_{{N}}/models/_marts_sources.yml</code>. It lists every table in the marts schema.</li>
+<li>In the preflight result, click the cell in row <b>8</b>, copy it, and replace everything in <code>team_{{N}}/dbt_projects_profiles.yml</code>.</li>
+<li>Row <b>9</b> » replace everything in <code>team_{{N}}/models/_marts_sources.yml</code>. It lists every table in the marts schema.</li>
 </ol>
 <div class="callout"><strong>Copy shows <code>\n</code> instead of new lines?</strong>Open the cell (click it, the detail pane on the right shows the full text) and copy from there. Or edit the placeholders <code>&lt;DEV_ROLE&gt;</code>, <code>&lt;DEV_WH&gt;</code>, <code>&lt;DEV_DB&gt;</code>, <code>&lt;MARTS_DB&gt;</code>, <code>&lt;MARTS_SCHEMA&gt;</code> by hand, and list your tables.</div>
 
@@ -195,7 +195,7 @@ ORDER BY 1 DESC LIMIT 12;</code></pre>
 <tr><th>You see</th><th>Do this</th></tr>
 <tr><td>No <em>Profile</em> in the bottom panel</td><td>Open a file inside <code>team_{{N}}/</code>. Still nothing? <code>dbt_project.yml</code> must be directly in <code>team_{{N}}/</code>, not one folder deeper</td></tr>
 <tr><td><code>Could not find profile named 'tvm_hackathon'</code></td><td>Step 3: the profiles file didn't get pasted, or the first line isn't <code>tvm_hackathon:</code></td></tr>
-<tr><td><code>does not exist or not authorized</code> on a mart</td><td>Database/schema in <code>_marts_sources.yml</code> is wrong, or run the preflight again (check 5)</td></tr>
+<tr><td><code>does not exist or not authorized</code> on a mart</td><td>Database/schema in <code>_marts_sources.yml</code> is wrong, or run the preflight again (check 4)</td></tr>
 <tr><td><code>depends on a source named 'tvm_marts.my_mart_table'</code></td><td>You haven't filled in step 4 yet</td></tr>
 <tr><td><code>source … was not found</code></td><td>The table isn't in <code>_marts_sources.yml</code>. Add it (name in lower case) and build again</td></tr>
 <tr><td><code>invalid identifier</code> in the semantic view</td><td>A column name in step 4 doesn't exist. Check it under <em>Databases</em></td></tr>
@@ -208,4 +208,4 @@ ORDER BY 1 DESC LIMIT 12;</code></pre>
   <a href="https://docs.snowflake.com/en/user-guide/ui-snowsight/workspaces"><img src="../assets/icons/process.svg" alt=""><span><b>Workspaces</b><small>Create, upload and download files</small></span></a>
 </div>
 </main></div>
-<script src="../assets/app.js?v=073321"></script></body></html>
+<script src="../assets/app.js?v=074316"></script></body></html>

@@ -136,7 +136,7 @@
   /* TVM's names for the day. Leave empty: each person fills them in once in the "Your setup" box
      (golden path, step 1), saved in their browser. A value set here wins for everyone. */
   const CONFIG = {
-    DEV_DB:       '',   // database the team schemas go in (preflight row 6)
+    DEV_DB:       '',   // database the team schemas go in (preflight row 5)
     DEV_ROLE:     '',   // dev role (preflight row 1)
     DEV_WH:       '',   // dev warehouse (preflight row 2)
     MARTS_DB:     '',   // database with TVM's marts
