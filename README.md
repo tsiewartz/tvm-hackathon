@@ -7,7 +7,7 @@ python3 -m http.server 8000 --directory site
 ```
 
 ## Pages
-- `index.html` (hero, agenda, build path, definition of done, roles, rules, architecture; `hackathon.html` redirects here), `prework.html`
+- `index.html` (hero, agenda, build path, definition of done, roles, architecture; `hackathon.html` redirects here)
 - Build path: `build/golden-path.html` (09:50, step by step) → `discover` → `semantic-view` → `agent` → `mcp`
 - Knowledge and finish: best practices, idea bank, resources, MVP handoff, cheat sheet, troubleshooting
 

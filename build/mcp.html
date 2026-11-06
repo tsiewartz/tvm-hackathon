@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MCP + Claude Code · Snowflake × TVM</title><link rel="stylesheet" href="../assets/style.css?v=072850"></head>
+<title>MCP + Claude Code · Snowflake × TVM</title><link rel="stylesheet" href="../assets/style.css?v=073321"></head>
 <body data-page="mcp" data-root="../">
 <div class="doc"><aside class="sidebar"></aside><main class="content">
 <span class="pill">Build path · 4</span>
 <h1><img class="ico" src="../assets/icons/collaboration.svg" alt="" style="display:inline-block;vertical-align:middle;margin-right:12px">MCP + Claude Code</h1>
 <p class="lede">The Model Context Protocol (MCP) is a standard plug between AI assistants and tools. Snowflake hosts the MCP server for you. Your team exposes <strong>one tool, your agent</strong>, so every client that connects gets the same instructions, guardrails and governed data.</p>
+<div class="callout"><strong>Check first: Claude Code and IT policy</strong>One laptop per team (the agent builder's) needs Claude Code, and TVM's IT policy must allow it and custom MCP servers. If it doesn't, skip this page: the same agent already works in Snowflake CoWork, and that's enough for the demo.</div>
 
 <div class="callout"><strong>Why expose the agent, not the semantic view?</strong>The semantic view is already a tool <em>inside</em> your agent. Exposing only the agent means Claude always goes through your instructions, refusal rules and cost budget. There's one entry point, and no second path that skips them.</div>
 
@@ -96,4 +97,4 @@ Give me the MCP URL for {{SCHEMA}}.MCP_TEAM_{{N}} on this account, and a curl co
   <a href="https://docs.anthropic.com/en/docs/claude-code/mcp"><img src="../assets/icons/laptop.svg" alt=""><span><b>Claude Code: MCP</b><small>Adding and managing MCP servers</small></span></a>
 </div>
 </main></div>
-<script src="../assets/app.js?v=072850"></script></body></html>
+<script src="../assets/app.js?v=073321"></script></body></html>

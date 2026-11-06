@@ -3,7 +3,6 @@
   const PAGES = [
     { id: 'home',       title: 'Home',                     href: 'index.html',                   group: null },
     { id: 'hackathon',  title: 'The day',                  href: 'index.html#agenda',               group: 'Start here' },
-    { id: 'prework',    title: 'Before you arrive',        href: 'prework.html',                 group: 'Start here' },
     { id: 'golden',     title: '0 · Golden path',          href: 'build/golden-path.html',   group: 'Build path' },
     { id: 'discover',   title: '1 · Discover your data',   href: 'build/discover.html',          group: 'Build path' },
     { id: 'gq',         title: 'Golden questions sheet',   href: 'build/golden-questions.html', group: 'Build path' },
