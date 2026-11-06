@@ -1,34 +1,34 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Best practices · Snowflake × TVM</title><link rel="stylesheet" href="assets/style.css?v=080855"></head>
+<title>Best practices · Snowflake × TVM</title><link rel="stylesheet" href="assets/style.css?v=081028"></head>
 <body data-page="bestpractices" data-root="">
 <div class="doc"><aside class="sidebar"></aside><main class="content">
 <span class="pill v">Knowledge</span>
 <h1>Best practices</h1>
-<p class="lede">What separates a demo that impresses from an MVP people trust. Distilled from Snowflake's guidance and from real customer projects.</p>
+<p class="lede">What separates a demo that impresses from an MVP people trust. Distilled from Snowflake's guidance, real customer projects and our dry runs for today.</p>
 
 <h2 id="top10">The top 10</h2>
 <div class="table-wrap"><table>
 <tr><th>#</th><th>Practice</th><th>Why</th></tr>
 <tr><td>1</td><td><b>Start from real questions</b>, not from the tables</td><td>Ten golden questions give scope, a test set and a demo script all at once</td></tr>
-<tr><td>2</td><td><b>Start small</b>: one domain, 3–10 tables, a star schema</td><td>Easier to debug, and accuracy is higher</td></tr>
+<tr><td>2</td><td><b>Start small</b>: one domain, 3–10 tables, ideally one fact table and its dimensions</td><td>Easier to debug, and accuracy is higher</td></tr>
 <tr><td>3</td><td><b>Describe everything</b> in business language</td><td>Descriptions are the biggest single driver of accuracy</td></tr>
 <tr><td>4</td><td><b>Define metrics in the semantic view</b>, not in prompts</td><td>One definition, reused by every agent, BI tool and notebook</td></tr>
 <tr><td>5</td><td><b>Define every relationship</b> your questions need</td><td>The agent won't guess joins</td></tr>
 <tr><td>6</td><td><b>Add verified queries last</b>, from real questions</td><td>They optimise a good model; they don't rescue a weak one</td></tr>
-<tr><td>7</td><td><b>Keep synonyms rare</b>, only for internal terms</td><td>Modern models already know the common ones, and extra synonyms just add noise</td></tr>
-<tr><td>8</td><td><b>Test after every change</b> against your golden questions</td><td>Fixes have side-effects</td></tr>
-<tr><td>9</td><td><b>Let governance flow through</b>: policies on tables, not in prompts</td><td>The AI layer inherits RBAC, masking and row access</td></tr>
-<tr><td>10</td><td><b>Everything as code</b>: dbt + Git + CI</td><td>Review, history, rollback and repeatable deploys</td></tr>
+<tr><td>7</td><td><b>Keep synonyms rare</b>, only for internal terms and codes</td><td>Modern models already know the common ones, and extra synonyms add noise</td></tr>
+<tr><td>8</td><td><b>Test after every change</b> against your golden questions</td><td>Fixes have side-effects. Keep the score in the <a href="build/golden-questions.html">sheet</a></td></tr>
+<tr><td>9</td><td><b>Let governance flow through</b>: policies on tables, not in prompts</td><td>The agent runs with the user's role, so RBAC, masking and row access still apply</td></tr>
+<tr><td>10</td><td><b>Keep it as code</b>: try in the UI, then export into dbt</td><td>One source of truth that TVM can review, version and deploy after today</td></tr>
 </table></div>
 
 <h2 id="sv">Semantic views</h2>
 <div class="dodont">
   <div class="do"><h4>✓ Do</h4><ul>
     <li>Ask "how would I explain this to a business stakeholder?"</li>
-    <li>Explain TVM-specific terms, abbreviations and legacy names</li>
-    <li>Use one semantic view per domain or use case, each with a clearly distinct description</li>
-    <li>Use metrics for rates, averages and distinct counts</li>
+    <li>Explain TVM-specific terms, abbreviations and codes (e.g. <code>FI</code> = Finland)</li>
+    <li>Give every view at least one date dimension and one fact. A view with only <code>COUNT(*)</code> is too thin to answer well</li>
+    <li>Use metrics for rates, averages and distinct counts, and derived metrics for ratios</li>
     <li>Use <code>module_custom_instructions.sql_generation</code> for defaults: period, currency, fiscal calendar</li>
     <li>Use <code>module_custom_instructions.question_categorization</code> to decline or clarify</li>
     <li>Use Cortex Search for free-text values with many distinct values (titles, names)</li>
@@ -49,10 +49,11 @@
 <div class="dodont">
   <div class="do"><h4>✓ Do</h4><ul>
     <li>Name the audience and the decision in the instructions</li>
-    <li>Make tool descriptions specific: they're the routing signal</li>
+    <li>Make tool descriptions specific: they're how the agent picks a tool</li>
     <li>Have the agent state its assumptions (period, filters)</li>
-    <li>Set a budget (seconds and tokens) and a warehouse with a timeout</li>
-    <li>Evaluate with a dataset of golden questions</li>
+    <li>Set a budget (seconds and tokens) and a query timeout</li>
+    <li>Add 3–5 sample questions that you know work</li>
+    <li>Test as your dev role, not ACCOUNTADMIN, and as a user would ask</li>
   </ul></div>
   <div class="dont"><h4>✗ Don't</h4><ul>
     <li>Duplicate metric logic in agent instructions</li>
@@ -60,23 +61,31 @@
     <li>Ship without testing an out-of-scope question</li>
   </ul></div>
 </div>
-<p class="readmore"><a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-evaluations">Cortex Agent evaluations</a></p>
+<p class="readmore"><a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-manage">Create and manage agents</a> · <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-evaluations">Agent evaluations</a></p>
+
+<h2 id="mcp">MCP + Claude Code</h2>
+<ul>
+<li><b>Expose only the agent</b>, not raw SQL. It carries your instructions, semantic view and access rules.</li>
+<li><b>Write the tool description for the AI client</b>: what it can answer and what it can't. That's what Claude reads to decide when to call it.</li>
+<li><b>Use a short-lived, role-restricted token</b>, keep it in an environment variable, and never paste it into a chat or a file.</li>
+<li><b>Test with curl first</b>, then connect Claude Code. It tells you quickly whether the problem is the token, the URL or the client.</li>
+</ul>
+<p class="readmore"><a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-mcp">Snowflake-managed MCP server</a></p>
 
 <h2 id="dbt">dbt</h2>
 <ul>
-<li><b>Layering:</b> sources → staging → marts → <code>semantic/</code> → <code>ai/</code>. AI objects are just the last layer of the DAG.</li>
-<li>Use <code>ref()</code> everywhere, including <b>inside</b> agent and MCP specs, so dbt builds in the right order.</li>
-<li><b>Test the marts</b> under your semantic view (unique, not_null, relationships). The agent is only as good as the data under it.</li>
-<li>Manage grants in code (dbt <code>meta</code> or <code>post-hook</code>), not by hand.</li>
-<li>Use one target schema per team or developer in dev, and promote through CI.</li>
-<li>After today, in TVM's repo: pin dbt and package versions.</li>
+<li><b>Today's project</b> is small on purpose: <code>source('tvm_marts', …)</code> → semantic view → agent → MCP server, linked with <code>ref()</code> so dbt builds them in the right order.</li>
+<li><b>Use the bottom panel</b> to build, with the right profile (<code>team_n</code>). The <em>Run file</em> button at the top only runs the open file.</li>
+<li><b>Write the semantic view as YAML</b>, the same format Semantic Studio shows and <code>export_yaml</code> produces. Then the UI and dbt never disagree about format.</li>
+<li><b>After today</b>, in TVM's repo: replace the sources with <code>ref()</code> to TVM's own models, add tests on the marts (unique, not_null, relationships), manage grants in code and deploy through CI.</li>
 </ul>
-<p class="readmore"><a href="https://docs.snowflake.com/en/user-guide/views-semantic/best-practices-dev">Best practices for developing &amp; deploying semantic views</a></p>
+<p class="readmore"><a href="https://docs.snowflake.com/en/user-guide/views-semantic/best-practices-dev">Developing &amp; deploying semantic views</a> · <a href="https://docs.snowflake.com/en/user-guide/data-engineering/dbt-projects-on-snowflake-best-practices">Best practices for dbt Projects on Snowflake</a></p>
 
 <h2 id="team">Teamwork on the day</h2>
 <ul>
-<li><b>Work in parallel</b>: the modeller works on the semantic view, the agent builder on the agent and MCP, the tester on questions and expected answers.</li>
-<li><b>One driver builds</b>, small and often. Teammates change things in the UI and the driver exports them into the project before the next build. After today the project goes into TVM's Git repo with review.</li>
+<li><b>Work in parallel</b>: the modeller on the semantic view, the agent builder on the agent and MCP, the tester on questions and expected answers.</li>
+<li><b>One shared workspace, one builder.</b> Everyone edits; your edits are a draft until you click <b>Publish</b>. Publish, then tell the driver, who builds. Two people building at once overwrite each other.</li>
+<li><b>Changed it in the UI?</b> Say so in the team, then the driver runs <code>export_yaml</code> and pastes it into the file <em>before</em> the next build. Otherwise the build replaces your UI change.</li>
 <li><b>Timebox</b>: if something is stuck for 15 minutes, ask a facilitator or simplify.</li>
 <li><b>Write down what you skipped</b> in <code>NEXT_STEPS.md</code>. That's your backlog tomorrow.</li>
 </ul>
@@ -86,10 +95,14 @@
 <tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr>
 <tr><td>Wrong numbers, plausible SQL</td><td>Metric not defined, so the AI invents one</td><td>Add the metric with a precise description</td></tr>
 <tr><td>"Can't answer" on join questions</td><td>A missing relationship</td><td>Add it under <code>relationships:</code> (the right table needs a <code>primary_key</code>)</td></tr>
+<tr><td>Agent fails, query history shows <code>FROM __t</code></td><td>Semantic view too thin (only <code>COUNT(*)</code>)</td><td>Add at least one dimension and one fact</td></tr>
 <tr><td>Wrong time period</td><td>No default rule</td><td>Add a <code>sql_generation</code> rule for default periods</td></tr>
-<tr><td>Text filter returns 0 rows</td><td>The value is spelled differently in the data</td><td>Add a Cortex Search service on that dimension</td></tr>
+<tr><td>Text filter returns 0 rows</td><td>The value is spelled differently in the data</td><td>Add sample values, or a Cortex Search service on that dimension</td></tr>
 <tr><td>Agent picks the wrong tool</td><td>Vague or overlapping tool descriptions</td><td>Make descriptions distinct, using words from your questions</td></tr>
+<tr><td>A UI change disappeared</td><td>Someone built before it was exported</td><td>It's gone; redo it, then export and paste before building</td></tr>
+<tr><td>Teammate's change isn't in the build</td><td>Their file is still a draft</td><td>Publish, then build</td></tr>
+<tr><td>It works for you, not for a colleague</td><td>You tested as ACCOUNTADMIN</td><td>Test with the dev role</td></tr>
 <tr><td>Scope creep</td><td>"Just one more table"</td><td>Back to the golden questions. Everything else goes on the backlog</td></tr>
 </table></div>
 </main></div>
-<script src="assets/app.js?v=080855"></script></body></html>
+<script src="assets/app.js?v=081028"></script></body></html>
