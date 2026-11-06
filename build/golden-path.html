@@ -177,7 +177,7 @@ tools:
 <p>In a SQL file in your workspace:</p>
 <pre><code>SELECT * FROM SEMANTIC_VIEW({{DEV_DB}}.{{SCHEMA}}.SV_TEAM_{{N}}
   METRICS mart.total_amount DIMENSIONS mart.period)
-ORDER BY 1 DESC LIMIT 12;</code></pre>
+ORDER BY period DESC LIMIT 12;</code></pre>
 <p>Then in <b>Snowflake CoWork</b> (<a href="https://ai.snowflake.com">ai.snowflake.com</a>): pick <b class="tpl">Team {{N}} agent</b> and ask something like <em>"What was the total amount per month this year?"</em></p>
 <ul class="check">
 <li><input type="checkbox"> <span>The SQL returns numbers per month</span></li>
